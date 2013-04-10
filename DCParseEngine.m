@@ -57,12 +57,14 @@
 //this is used when the attributes for a tag match will be known ahead of time. (e.g: hello *world* '*' bolds the text)
 -(void)addPattern:(NSString*)openTag close:(NSString*)closeTag attributes:(NSArray*)attribs
 {
+    [self purgePatterns:openTag close:closeTag];
     DCParsePattern* pattern = [DCParsePattern patternWithTag:openTag close:closeTag attribs:attribs];
     [patterns addObject:pattern];
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 -(void)addPattern:(NSString*)openTag close:(NSString*)closeTag block:(DCPatternBlock)callback
 {
+    [self purgePatterns:openTag close:closeTag];
     DCParsePattern* pattern = [DCParsePattern patternWithTag:openTag close:closeTag callback:callback];
     [patterns addObject:pattern];
 }
@@ -173,7 +175,15 @@
                         if([key isEqualToString:DC_LINK_TEXT])
                             [attribString setTextIsHyperLink:value range:NSMakeRange(range.start, range.end)];
                         else if([key isEqualToString:DC_IMAGE_LINK])
-                            [attribString addImage:value height:self.embedHeight width:self.embedWidth index:range.start];
+                        {
+                            float h = [[object objectForKey:@"height"] floatValue];
+                            float w = [[object objectForKey:@"width"] floatValue];
+                            if(h <= 0)
+                                h = self.embedHeight;
+                            if(w <= 0)
+                                w = self.embedWidth;
+                            [attribString addImage:value height:h width:w index:range.start];
+                        }
                     }
                 }
             }
@@ -208,6 +218,18 @@
         }
     }
     return NO;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+-(void)purgePatterns:(NSString*)openTag close:(NSString*)closeTag
+{
+    for(DCParsePattern* pattern in patterns)
+    {
+        if([pattern.closeTag isEqualToString:closeTag] && [pattern.openTag isEqualToString:openTag])
+        {
+            [patterns removeObject:pattern];
+            return;
+        }
+    }
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //factory methods

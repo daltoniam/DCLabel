@@ -32,6 +32,9 @@
 - (void)didSelectImage:(NSString*)imageURL;
 - (void)didLongPressImage:(NSString*)imageURL;
 
+//return your imageView that loads the imgURL
+-(UIView*)imageWillLoad:(NSString*)imgURL;
+
 @end
 
 @interface DCLabel : UILabel

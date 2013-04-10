@@ -35,8 +35,8 @@
         for(ViewItem* entry in viewItems)
         {
             [entry.subView removeFromSuperview];
+            entry.subView.frame = entry.frame;
             [self addSubview:entry.subView];
-            //[(GPYouTubeView*)entry.subView loadVideo];
             [self bringSubviewToFront:entry.subView];
         }
         isDrawing = NO;
@@ -86,9 +86,9 @@
                     CGFloat xOffset = CTLineGetOffsetForStringIndex((__bridge CTLineRef)oneLine, CTRunGetStringRange((__bridge CTRunRef)oneRun).location, NULL);
                     
                     NSDictionary *attributes = (__bridge NSDictionary *)CTRunGetAttributes((__bridge CTRunRef) oneRun);
-                    CTFontRef font = (__bridge CTFontRef)[attributes objectForKey:(NSString*)kCTFontAttributeName];
-                    CGFloat fontSize = CTFontGetSize(font);
-                    int fontOffset = (fontSize*2);
+                    //CTFontRef font = (__bridge CTFontRef)[attributes objectForKey:(NSString*)kCTFontAttributeName];
+                    //CGFloat fontSize = CTFontGetSize(font);
+                    //int fontOffset = (fontSize*2);
                     
                     NSString* hyperlink = [attributes objectForKey:DC_LINK_TEXT];
                     if(hyperlink)
@@ -113,22 +113,19 @@
                     NSString* imgURL = [attributes objectForKey:DC_IMAGE_LINK];
                     if(imgURL && ![self didLoadURL:imgURL])
                     {
-                        CGRect runBounds;
-                        runBounds.size.width = width;
-                        runBounds.size.height = height;
-                        runBounds.origin.x = origins[lineIndex].x + xOffset;
-                        runBounds.origin.y = origins[lineCount+1].y;
-                        //runBounds.origin.y -= descent;
-                        runBounds.origin.y += fontOffset + self.frame.origin.y;
-                        //CGRect imgBounds = CGRectOffset(runBounds, colRect.origin.x, colRect.origin.y);
-
-                        UIView* view = [[UIView alloc] initWithFrame:runBounds];
-                        view.backgroundColor = [UIColor greenColor];
-                        [viewItems addObject:[ViewItem item:view url:imgURL frame:runBounds]];
+                        if([self.delegate respondsToSelector:@selector(imageWillLoad:)])
+                        {
+                            CGRect runBounds;
+                            runBounds.size.width = width;
+                            runBounds.size.height = height;
+                            runBounds.origin.x = origins[lineIndex].x + xOffset;
+                            runBounds.origin.y = self.frame.size.height - (origins[lineIndex].y + height);
+                            UIView* view = [self.delegate imageWillLoad:imgURL];
+                            [viewItems addObject:[ViewItem item:view url:imgURL frame:runBounds]];
+                        }
                     }
                 }
                 lineIndex++;
-                lineCount--;
             }
             free(origins);
         }
