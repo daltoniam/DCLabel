@@ -295,13 +295,17 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 +(CGFloat)suggestedHeight:(NSAttributedString*)attributedText width:(int)width
 {
-    CTFramesetterRef framesetter = CTFramesetterCreateWithAttributedString((__bridge CFAttributedStringRef)attributedText);
-    //NSLog(@"frame.size.width: %f",frame.size.width);
-    CGSize size = CTFramesetterSuggestFrameSizeWithConstraints(framesetter,CFRangeMake(0,0),NULL,CGSizeMake(width,10000.0f),NULL);
-    //NSLog(@"size: %f",size.height);
-    CGFloat height = MAX(0.f , ceilf(size.height));
-    CFRelease(framesetter);
-    return height;
+    if(attributedText)
+    {
+        CTFramesetterRef framesetter = CTFramesetterCreateWithAttributedString((__bridge CFAttributedStringRef)attributedText);
+        //NSLog(@"frame.size.width: %f",frame.size.width);
+        CGSize size = CTFramesetterSuggestFrameSizeWithConstraints(framesetter,CFRangeMake(0,0),NULL,CGSizeMake(width,10000.0f),NULL);
+        //NSLog(@"size: %f",size.height);
+        CGFloat height = MAX(0.f , ceilf(size.height));
+        CFRelease(framesetter);
+        return height;
+    }
+    return 0;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
