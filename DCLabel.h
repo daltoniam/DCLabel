@@ -47,6 +47,11 @@
 
 @property(nonatomic,assign)id<DCLabelDelegate>delegate;
 
+//text shadow properties
+@property(nonatomic,strong)UIColor* textShadowColor;
+@property(nonatomic,assign)CGSize textShadowOffset;
+@property(nonatomic,assign)NSInteger textShadowBlur;
+
 //returns the suggested height for the label based of the text and the width.
 +(CGFloat)suggestedHeight:(NSAttributedString*)attributedText width:(int)width;
 

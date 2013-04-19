@@ -14,7 +14,7 @@
 
 #define LONG_PRESS_THRESHOLD 0.75
 
-@synthesize delegate;
+@synthesize delegate,textShadowBlur,textShadowColor,textShadowOffset;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 - (id)initWithFrame:(CGRect)frame
 {
@@ -44,12 +44,17 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 - (void)drawTextInRect:(CGRect)rect
 {
+    CGContextRef ctx = UIGraphicsGetCurrentContext();
+    if(self.textShadowColor)
+    {
+        CGContextSetShadow(ctx, self.textShadowOffset, self.textShadowBlur);
+        CGContextSetShadowWithColor(ctx, self.textShadowOffset, self.textShadowBlur, self.textShadowColor.CGColor);
+    }
     if(!isDrawing)
     {
         isDrawing = YES;
         if (self.attributedText)
         {
-            CGContextRef ctx = UIGraphicsGetCurrentContext();
             // flipping the context to draw core text
             // no need to flip our typographical bounds from now on
             CGContextSetTextMatrix(ctx, CGAffineTransformIdentity);
