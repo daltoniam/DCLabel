@@ -1,7 +1,7 @@
 Pod::Spec.new do |s|
   s.name         = "DCLabel"
   s.version      = "0.0.1"
-  s.summary      = "Extends UILabel attributedText drawing to make embedding images/video content simple. Also has a powerful parsing engine to convert text tags to attributed strings."
+  s.summary      = "Extends UILabel attributedText drawing to make embedding images/video content simple."
   s.homepage     = "https://github.com/daltoniam/DCLabel"
   s.license      = 'Apache License, Version 2.0'
   s.author       = { "Dalton Cherry" => "daltoniam@gmail.com" }
