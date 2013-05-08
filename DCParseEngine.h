@@ -9,7 +9,7 @@
 
 #import <Foundation/Foundation.h>
 
-typedef NSArray* (^DCPatternBlock)(NSString* openTag,NSString* closeTag);
+typedef NSArray* (^DCPatternBlock)(NSString* openTag,NSString* closeTag,NSString* text);
 
 
 @interface DCParseEngine : NSObject
@@ -22,6 +22,12 @@ typedef NSArray* (^DCPatternBlock)(NSString* openTag,NSString* closeTag);
 
 //add a pattern with this attributes to style the string. Uses a block for a callback for styling that comes from the tags content
 -(void)addPattern:(NSString*)openTag close:(NSString*)closeTag block:(DCPatternBlock)callback;
+
+//does the same as above, but can specific if tags are removed or not
+-(void)addPattern:(NSString*)openTag close:(NSString*)closeTag attributes:(NSArray*)attribs keepTags:(BOOL)keep;
+
+//does the same as above, but can specific if tags are removed or not
+-(void)addPattern:(NSString*)openTag close:(NSString*)closeTag keepTags:(BOOL)keep block:(DCPatternBlock)callback;
 
 //start the parsing of string.
 -(NSAttributedString*)parse:(NSString*)string;

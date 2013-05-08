@@ -246,7 +246,7 @@
     callbacks.getAscent = getAscentCallback;
     callbacks.getDescent = getDescentCallback;
     callbacks.getWidth = getWidthCallback;
-    CTRunDelegateRef delegate = CTRunDelegateCreate(&callbacks,(__bridge void *)(attribs));
+    CTRunDelegateRef delegate = CTRunDelegateCreate(&callbacks,(void *)CFBridgingRetain(attribs));
     [self removeAttribute:(NSString*)kCTRunDelegateAttributeName range:range]; // remove then add for apple leak.
     [self addAttribute:(NSString*)kCTRunDelegateAttributeName value:(__bridge id)delegate range:range];
     CFRelease(delegate);
@@ -254,7 +254,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void deallocationCallback( void* ref )
 {
-    //[(__bridge id)ref release];
+    CFBridgingRelease(ref);
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //height of object

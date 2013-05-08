@@ -19,6 +19,7 @@
 @property(nonatomic,strong)NSString* closeTag;
 @property(nonatomic,strong)NSArray* attributes;
 @property(nonatomic,assign)DCPatternBlock callback;
+@property(nonatomic,assign)BOOL keepTag;
 
 +(DCParsePattern*)patternWithTag:(NSString*)open close:(NSString*)close attribs:(NSArray*)attrs;
 +(DCParsePattern*)patternWithTag:(NSString*)open close:(NSString*)close callback:(DCPatternBlock)block;
@@ -33,6 +34,7 @@
 @property(nonatomic,assign)NSString* closeTag;
 @property(nonatomic,strong)NSString* openTag;
 @property(nonatomic,assign)DCPatternBlock block;
+@property(nonatomic,assign)BOOL keepTag;
 
 
 @end
@@ -56,15 +58,28 @@
 //this is used when the attributes for a tag match will be known ahead of time. (e.g: hello *world* '*' bolds the text)
 -(void)addPattern:(NSString*)openTag close:(NSString*)closeTag attributes:(NSArray*)attribs
 {
-    [self purgePatterns:openTag close:closeTag];
-    DCParsePattern* pattern = [DCParsePattern patternWithTag:openTag close:closeTag attribs:attribs];
-    [patterns addObject:pattern];
+    [self addPattern:openTag close:closeTag attributes:attribs keepTags:NO];
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 -(void)addPattern:(NSString*)openTag close:(NSString*)closeTag block:(DCPatternBlock)callback
 {
+    [self addPattern:openTag close:closeTag keepTags:NO block:callback];
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//this is used when the attributes for a tag match will be known ahead of time. (e.g: hello *world* '*' bolds the text)
+-(void)addPattern:(NSString*)openTag close:(NSString*)closeTag attributes:(NSArray*)attribs keepTags:(BOOL)keep
+{
+    [self purgePatterns:openTag close:closeTag];
+    DCParsePattern* pattern = [DCParsePattern patternWithTag:openTag close:closeTag attribs:attribs];
+    pattern.keepTag = keep;
+    [patterns addObject:pattern];
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+-(void)addPattern:(NSString*)openTag close:(NSString*)closeTag keepTags:(BOOL)keep block:(DCPatternBlock)callback
+{
     [self purgePatterns:openTag close:closeTag];
     DCParsePattern* pattern = [DCParsePattern patternWithTag:openTag close:closeTag callback:callback];
+    pattern.keepTag = keep;
     [patterns addObject:pattern];
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -79,17 +94,41 @@
     {
         for(DCStyleRange* range in currentRanges)
         {
-            if([range.closeTag characterAtIndex:0] == [string characterAtIndex:i])
+            unichar currentChar = [string characterAtIndex:i];
+            unichar checkChar = [range.closeTag characterAtIndex:0];
+            BOOL isTag = NO;
+            BOOL match = NO;
+            if(checkChar == currentChar)
+                match = YES;
+            else if(isspace(checkChar) && (isspace(currentChar) || i == string.length-1) && range.closeTag.length == 1 )
+            {
+                isTag = YES;
+                match = YES;
+                if(i == string.length-1)
+                    i++;
+            }
+            if(match)
             {
                 NSString* uTag = nil;
-                BOOL isTag = [self processTag:range.closeTag updateTag:&uTag string:string index:i];
+                if(!isTag)
+                    isTag = [self processTag:range.closeTag updateTag:&uTag string:string index:i];
                 if(uTag)
                     range.closeTag = uTag;
                 if(isTag)
                 {
-                    endString = [endString stringByReplacingCharactersInRange:NSMakeRange(i-offset, range.closeTag.length) withString:@""];
-                    range.end = (i-offset) - range.start;
-                    offset += range.closeTag.length;
+                    if(!range.keepTag)
+                    {
+                        endString = [endString stringByReplacingCharactersInRange:NSMakeRange(range.start, range.openTag.length) withString:@""];
+                        i -= range.openTag.length;
+                        offset += range.openTag.length-1;
+                    }
+                    
+                    if(!range.keepTag)
+                        endString = [endString stringByReplacingCharactersInRange:NSMakeRange(i-offset, range.closeTag.length) withString:@""];
+                    range.end = (i-offset) - (range.start-offset);
+                    
+                    if(!range.keepTag)
+                        offset += range.closeTag.length;
                     i += range.closeTag.length;
                     [currentRanges removeObject:range];
                     found = YES;
@@ -113,16 +152,15 @@
                     }
                     if(isTag)
                     {
-                        endString = [endString stringByReplacingCharactersInRange:NSMakeRange(i-offset, pattern.openTag.length) withString:@""];
                         DCStyleRange* range = [[DCStyleRange alloc] init];
                         range.start = i-offset;
                         range.attribs = pattern.attributes;
                         range.closeTag = pattern.closeTag;
                         range.openTag = pattern.openTag;
                         range.block = pattern.callback;
+                        range.keepTag = pattern.keepTag;
                         [currentRanges addObject:range];
                         [collectRanges addObject:range];
-                        offset += pattern.openTag.length;
                         i += pattern.openTag.length-1;
                         if(uTag)
                             pattern.openTag = currentTag;
@@ -139,7 +177,7 @@
     {
         NSArray* array = range.attribs;
         if(!array && range.block)
-            array = range.block(range.openTag,range.closeTag);
+            array = range.block(range.openTag,range.closeTag,[endString substringWithRange:NSMakeRange(range.start, range.end)]);
         if(array)
         {
             for(id object in array)
@@ -193,6 +231,8 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 -(BOOL)processTag:(NSString*)tagName updateTag:(NSString**)updateTag string:(NSString*)string index:(int)index
 {
+    if(index+tagName.length > string.length)
+        return NO;
     NSString* check = [string substringWithRange:NSMakeRange(index, tagName.length)];
     if([tagName isEqualToString:check])
         return YES;
@@ -241,7 +281,7 @@
     [engine addPattern:@"<strong>" close:@"</strong>" attributes:[NSArray arrayWithObject:DC_BOLD_TEXT]];
     [engine addPattern:@"<i>" close:@"</i>" attributes:[NSArray arrayWithObject:DC_ITALIC_TEXT]];
     [engine addPattern:@"<em>" close:@"</em>" attributes:[NSArray arrayWithObject:DC_ITALIC_TEXT]];
-    [engine addPattern:@"<a?>" close:@"</a>" block:^NSArray*(NSString* openTag,NSString* closeTag){
+    [engine addPattern:@"<a?>" close:@"</a>" block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
         NSRange range = [openTag rangeOfString:@"href="];
         int start = range.location + range.length + 1;
         range = [openTag rangeOfString:@" " options:0 range:NSMakeRange(start, openTag.length-start)];
@@ -266,11 +306,11 @@
     [engine addPattern:@"___" close:@"___" attributes:[NSArray arrayWithObjects:DC_ITALIC_TEXT,DC_BOLD_TEXT, nil]];
     [engine addPattern:@"__" close:@"__" attributes:[NSArray arrayWithObject:DC_BOLD_TEXT]];
     [engine addPattern:@"_" close:@"_" attributes:[NSArray arrayWithObject:DC_ITALIC_TEXT]];
-    [engine addPattern:@"![" close:@"](?)" block:^NSArray*(NSString* openTag,NSString* closeTag){
+    [engine addPattern:@"![" close:@"](?)" block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
         NSString* link = [closeTag substringWithRange:NSMakeRange(2, closeTag.length-3)];
         return [NSArray arrayWithObjects:[NSDictionary dictionaryWithObject:link forKey:DC_IMAGE_LINK],nil];
     }];
-    [engine addPattern:@"[" close:@"](?)" block:^NSArray*(NSString* openTag,NSString* closeTag){
+    [engine addPattern:@"[" close:@"](?)" block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
         NSString* link = [closeTag substringWithRange:NSMakeRange(2, closeTag.length-3)];
         return [NSArray arrayWithObjects:[UIColor colorWithRed:0 green:0 blue:238.0f/255.0f alpha:1],[NSDictionary dictionaryWithObject:link forKey:DC_LINK_TEXT],nil];
     }];
