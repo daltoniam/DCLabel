@@ -100,7 +100,7 @@
             BOOL match = NO;
             if(checkChar == currentChar)
                 match = YES;
-            else if(isspace(checkChar) && (isspace(currentChar) || i == string.length-1) && range.closeTag.length == 1 )
+            else if(isspace(checkChar) && (isspace(currentChar) || currentChar == '\n' || i == string.length-1) && range.closeTag.length == 1 )
             {
                 isTag = YES;
                 match = YES;
@@ -120,13 +120,14 @@
                     {
                         endString = [endString stringByReplacingCharactersInRange:NSMakeRange(range.start, range.openTag.length) withString:@""];
                         i -= range.openTag.length;
-                        offset += range.openTag.length-1;
+                        //offset += range.openTag.length;
                     }
                     
                     if(!range.keepTag)
                         endString = [endString stringByReplacingCharactersInRange:NSMakeRange(i-offset, range.closeTag.length) withString:@""];
                     range.end = (i-offset) - (range.start-offset);
-                    
+                    if(range.end < 0)
+                        range.end = 1;
                     if(!range.keepTag)
                         offset += range.closeTag.length;
                     i += range.closeTag.length;
@@ -161,7 +162,7 @@
                         range.keepTag = pattern.keepTag;
                         [currentRanges addObject:range];
                         [collectRanges addObject:range];
-                        i += pattern.openTag.length-1;
+                        //i += pattern.openTag.length-1;
                         if(uTag)
                             pattern.openTag = currentTag;
                         break;
