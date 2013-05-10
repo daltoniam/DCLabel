@@ -116,22 +116,37 @@
                     range.closeTag = uTag;
                 if(isTag)
                 {
+                    range.end = ((i)-offset) - range.start;
                     if(!range.keepTag)
                     {
-                        endString = [endString stringByReplacingCharactersInRange:NSMakeRange(range.start, range.openTag.length) withString:@""];
-                        i -= range.openTag.length;
-                        //offset += range.openTag.length;
+                        range.end -= 1;
+                        endString = [endString stringByReplacingCharactersInRange:NSMakeRange(range.start-offset, range.openTag.length) withString:@""];
+                        offset += range.openTag.length;
                     }
-                    
+
                     if(!range.keepTag)
-                        endString = [endString stringByReplacingCharactersInRange:NSMakeRange(i-offset, range.closeTag.length) withString:@""];
-                    range.end = (i-offset) - (range.start-offset);
+                    {
+                        endString = [endString stringByReplacingCharactersInRange:NSMakeRange(i-1, range.closeTag.length) withString:@""];
+                        offset += range.closeTag.length;
+                    }
                     if(range.end < 0)
                         range.end = 1;
-                    if(!range.keepTag)
-                        offset += range.closeTag.length;
-                    i += range.closeTag.length;
+                    if(range.keepTag)
+                        i += range.closeTag.length;
+                    
                     [currentRanges removeObject:range];
+                    //clean up any pattern that is no longer needed
+                    NSMutableArray* removeArray = nil;
+                    for(DCStyleRange* range in currentRanges)
+                    {
+                        if(range.start > endString.length)
+                        {
+                            if(!removeArray)
+                                removeArray = [NSMutableArray array];
+                            [removeArray addObject:range];
+                        }
+                    }
+                    [currentRanges removeObjectsInArray:removeArray];
                     found = YES;
                     break;
                 }
@@ -153,6 +168,7 @@
                     }
                     if(isTag)
                     {
+                        //NSLog(@"open tag: %d",i);
                         DCStyleRange* range = [[DCStyleRange alloc] init];
                         range.start = i-offset;
                         range.attribs = pattern.attributes;
@@ -162,7 +178,7 @@
                         range.keepTag = pattern.keepTag;
                         [currentRanges addObject:range];
                         [collectRanges addObject:range];
-                        //i += pattern.openTag.length-1;
+                        i += pattern.openTag.length;
                         if(uTag)
                             pattern.openTag = currentTag;
                         break;
@@ -176,51 +192,55 @@
     [attribString setFont:[UIFont systemFontOfSize:17]];
     for(DCStyleRange* range in collectRanges)
     {
-        NSArray* array = range.attribs;
-        if(!array && range.block)
-            array = range.block(range.openTag,range.closeTag,[endString substringWithRange:NSMakeRange(range.start, range.end)]);
-        if(array)
+        if(range.start+range.end <= endString.length)
         {
-            for(id object in array)
+            NSRange rangeLoc = NSMakeRange(range.start, range.end);
+            NSArray* array = range.attribs;
+            if(!array && range.block)
+                array = range.block(range.openTag,range.closeTag,[endString substringWithRange:rangeLoc]);
+            if(array)
             {
-                if([object isKindOfClass:[NSString class]])
+                for(id object in array)
                 {
-                    NSString* style = object;
-                    if([style isEqualToString:DC_BOLD_TEXT])
-                        [attribString setTextBold:YES range:NSMakeRange(range.start, range.end)];
-                    else if([style isEqualToString:DC_ITALIC_TEXT])
-                        [attribString setTextItalic:YES range:NSMakeRange(range.start, range.end)];
-                    else if([style isEqualToString:DC_UNDERLINE_TEXT])
-                        [attribString setTextIsUnderlined:YES range:NSMakeRange(range.start, range.end)];
-                    else if([style isEqualToString:DC_STRIKE_THROUGH_TEXT])
-                        [attribString setTextStrikeOut:YES range:NSMakeRange(range.start, range.end)];
-                }
-                else if([object isKindOfClass:[UIFont class]])
-                {
-                    UIFont* font = object;
-                    [attribString setFont:font];
-                }
-                else if([object isKindOfClass:[UIColor class]])
-                {
-                    UIColor* color = object;
-                    [attribString setTextColor:color range:NSMakeRange(range.start, range.end)];
-                }
-                else if([object isKindOfClass:[NSDictionary class]])
-                {
-                    for(id key in object)
+                    if([object isKindOfClass:[NSString class]])
                     {
-                        id value = [object objectForKey:key];
-                        if([key isEqualToString:DC_LINK_TEXT])
-                            [attribString setTextIsHyperLink:value range:NSMakeRange(range.start, range.end)];
-                        else if([key isEqualToString:DC_IMAGE_LINK])
+                        NSString* style = object;
+                        if([style isEqualToString:DC_BOLD_TEXT])
+                            [attribString setTextBold:YES range:rangeLoc];
+                        else if([style isEqualToString:DC_ITALIC_TEXT])
+                            [attribString setTextItalic:YES range:rangeLoc];
+                        else if([style isEqualToString:DC_UNDERLINE_TEXT])
+                            [attribString setTextIsUnderlined:YES range:rangeLoc];
+                        else if([style isEqualToString:DC_STRIKE_THROUGH_TEXT])
+                            [attribString setTextStrikeOut:YES range:rangeLoc];
+                    }
+                    else if([object isKindOfClass:[UIFont class]])
+                    {
+                        UIFont* font = object;
+                        [attribString setFont:font];
+                    }
+                    else if([object isKindOfClass:[UIColor class]])
+                    {
+                        UIColor* color = object;
+                        [attribString setTextColor:color range:rangeLoc];
+                    }
+                    else if([object isKindOfClass:[NSDictionary class]])
+                    {
+                        for(id key in object)
                         {
-                            float h = [[object objectForKey:@"height"] floatValue];
-                            float w = [[object objectForKey:@"width"] floatValue];
-                            if(h <= 0)
-                                h = self.embedHeight;
-                            if(w <= 0)
-                                w = self.embedWidth;
-                            [attribString addImage:value height:h width:w index:range.start];
+                            id value = [object objectForKey:key];
+                            if([key isEqualToString:DC_LINK_TEXT])
+                                [attribString setTextIsHyperLink:value range:rangeLoc];
+                            else if([key isEqualToString:DC_IMAGE_LINK])
+                            {
+                                float h = [[object objectForKey:@"height"] floatValue];
+                                float w = [[object objectForKey:@"width"] floatValue];
+                                if(h <= 0)
+                                    h = self.embedHeight;
+                                if(w <= 0)
+                                    w = self.embedWidth;
+                                [attribString addImage:value height:h width:w index:range.start];
+                            }
                         }
                     }
                 }
@@ -237,22 +257,28 @@
     NSString* check = [string substringWithRange:NSMakeRange(index, tagName.length)];
     if([tagName isEqualToString:check])
         return YES;
+    //NSLog(@"tagName: %@",tagName);
     NSRange range = [tagName rangeOfString:@"?"];
     if(range.location != NSNotFound)
     {
-        unichar end = [tagName characterAtIndex:range.location+1];
-        NSString* last = [tagName substringFromIndex:range.location+1];
-        int start = index+range.location;
-        for(int i = start; i < string.length; i++)
+        NSString* valid = [string substringWithRange:NSMakeRange(index, range.location)];
+        if([valid isEqualToString:[tagName substringToIndex:range.location]])
         {
-            if(end == [string characterAtIndex:i])
+            unichar end = [tagName characterAtIndex:range.location+1];
+            NSString* last = [tagName substringFromIndex:range.location+1];
+            int start = index+range.location;
+            for(int i = start; i < string.length; i++)
             {
-                NSString* check = [string substringWithRange:NSMakeRange(i, last.length)];
-                if([check isEqualToString:last])
+                if(end == [string characterAtIndex:i])
                 {
-                    NSString* source = [string substringWithRange:NSMakeRange(start, i-start)];
-                    *updateTag = [tagName stringByReplacingOccurrencesOfString:@"?" withString:source];
-                    return YES;
+                    NSString* check = [string substringWithRange:NSMakeRange(i, last.length)];
+                    if([check isEqualToString:last])
+                    {
+                        NSString* source = [string substringWithRange:NSMakeRange(start, i-start)];
+                        *updateTag = [tagName stringByReplacingOccurrencesOfString:@"?" withString:source];
+                        //NSLog(@"updateTag: %@",*updateTag);
+                        return YES;
+                    }
                 }
             }
         }
