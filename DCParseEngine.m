@@ -116,25 +116,42 @@
                     range.closeTag = uTag;
                 if(isTag)
                 {
-                    range.end = ((i)-offset) - range.start;
+                    int totalChange = 0;
+                    range.end = (i-offset) - range.start;
                     if(!range.keepTag)
                     {
-                        range.end -= 1;
-                        endString = [endString stringByReplacingCharactersInRange:NSMakeRange(range.start-offset, range.openTag.length) withString:@""];
-                        offset += range.openTag.length;
+                        range.end -= range.openTag.length;
+                        //NSLog(@"start: %d endString length: %d",range.start-offset,endString.length);
+                        if(range.start > -1 && range.start+range.openTag.length <= endString.length)
+                        {
+                            endString = [endString stringByReplacingCharactersInRange:NSMakeRange(range.start, range.openTag.length) withString:@""];
+                            offset += range.openTag.length;
+                            totalChange += range.openTag.length;
+                        }
                     }
 
                     if(!range.keepTag)
                     {
-                        endString = [endString stringByReplacingCharactersInRange:NSMakeRange(i-1, range.closeTag.length) withString:@""];
-                        offset += range.closeTag.length;
+                        //NSLog(@"i %d end: %d length: %d",i,(i-offset)+range.closeTag.length,endString.length);
+                        int len = (i-offset)+range.closeTag.length;
+                        if(len <= endString.length)
+                        {
+                            endString = [endString stringByReplacingCharactersInRange:NSMakeRange(i-offset, range.closeTag.length) withString:@""];
+                            offset += range.closeTag.length;
+                            totalChange += range.closeTag.length;
+                        }
                     }
-                    if(range.end < 0)
-                        range.end = 1;
                     if(range.keepTag)
-                        i += range.closeTag.length;
+                        i += range.closeTag.length-1;
                     
                     [currentRanges removeObject:range];
+                    //update the offset of the tag after this one
+                    int index = [collectRanges indexOfObject:range];
+                    for(int i = index+1; i < collectRanges.count; i++)
+                    {
+                        DCStyleRange* range = [collectRanges objectAtIndex:i];
+                        range.start -= totalChange;
+                    }
                     //clean up any pattern that is no longer needed
                     NSMutableArray* removeArray = nil;
                     for(DCStyleRange* range in currentRanges)
@@ -168,6 +185,7 @@
                     }
                     if(isTag)
                     {
+                        //NSLog(@"pattern openTag: %@",pattern.openTag);
                         //NSLog(@"open tag: %d",i);
                         DCStyleRange* range = [[DCStyleRange alloc] init];
                         range.start = i-offset;
@@ -178,7 +196,7 @@
                         range.keepTag = pattern.keepTag;
                         [currentRanges addObject:range];
                         [collectRanges addObject:range];
-                        i += pattern.openTag.length;
+                        i += pattern.openTag.length-1;
                         if(uTag)
                             pattern.openTag = currentTag;
                         break;
@@ -188,6 +206,7 @@
         }
         found = NO;
     }
+    //NSLog(@"endString: %@",endString);
     NSMutableAttributedString* attribString = [[NSMutableAttributedString alloc] initWithString:endString attributes:nil];
     [attribString setFont:[UIFont systemFontOfSize:17]];
     for(DCStyleRange* range in collectRanges)
