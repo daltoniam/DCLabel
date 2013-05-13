@@ -43,6 +43,6 @@ static NSString* const DC_IMAGE_LINK = @"DCImageLink";
 -(void)setFontFamily:(NSString*)fontFamily size:(CGFloat)size bold:(BOOL)isBold italic:(BOOL)isItalic range:(NSRange)range;
 -(void)setFontFamily:(NSString*)fontFamily size:(CGFloat)size bold:(BOOL)isBold italic:(BOOL)isItalic;
 
--(void)addImage:(NSString*)link height:(float)height width:(float)width index:(int)index;
+-(void)addImage:(NSString*)link height:(float)height width:(float)width index:(int)index attributes:(NSDictionary*)attrs;
 
 @end

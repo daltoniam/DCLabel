@@ -115,17 +115,23 @@
                         CGContextRestoreGState(ctx);
                     }
                     NSString* imgURL = [attributes objectForKey:DC_IMAGE_LINK];
-                    if(imgURL && ![self didLoadURL:imgURL])
+                    if(imgURL && [self.delegate respondsToSelector:@selector(imageWillLoad:attributes:)]) //&& ![self didLoadURL:imgURL]
                     {
-                        if([self.delegate respondsToSelector:@selector(imageWillLoad:)])
+                        ViewItem* viewItem = [self viewItemForTag:viewTag];
+                        if(!viewItem)
+                        {
+                            UIView* view = [self.delegate imageWillLoad:imgURL attributes:attributes];
+                            viewItem = [ViewItem item:view url:imgURL frame:CGRectZero];
+                            [viewItems addObject:viewItem];
+                        }
+                        if(viewItem)
                         {
                             CGRect runBounds;
                             runBounds.size.width = width;
                             runBounds.size.height = height;
                             runBounds.origin.x = origins[lineIndex].x + xOffset;
                             runBounds.origin.y = self.frame.size.height - (origins[lineIndex].y + height);
-                            UIView* view = [self.delegate imageWillLoad:imgURL];
-                            [viewItems addObject:[ViewItem item:view url:imgURL frame:runBounds]];
+                            viewItem.frame = runBounds;
                         }
                     }
                 }
@@ -294,6 +300,13 @@
             return YES;
     }
     return NO;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+-(ViewItem*)viewItemForTag:(int)tag
+{
+    if(viewItems.count < tag)
+        [viewItems objectAtIndex:tag];
+    return nil;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //public method

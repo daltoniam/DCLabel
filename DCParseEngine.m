@@ -245,6 +245,7 @@
                     }
                     else if([object isKindOfClass:[NSDictionary class]])
                     {
+                        //[attribString addAttributes:object range:rangeLoc];
                         for(id key in object)
                         {
                             id value = [object objectForKey:key];
@@ -258,8 +259,10 @@
                                     h = self.embedHeight;
                                 if(w <= 0)
                                     w = self.embedWidth;
-                                [attribString addImage:value height:h width:w index:range.start];
+                                [attribString addImage:value height:h width:w index:range.start attributes:object];
                             }
+                            else
+                                [attribString addAttribute:key value:value range:rangeLoc];
                         }
                     }
                 }

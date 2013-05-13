@@ -32,7 +32,7 @@
 - (void)didLongPressImage:(NSString*)imageURL;
 
 //return your imageView that loads the imgURL
--(UIView*)imageWillLoad:(NSString*)imgURL;
+-(UIView*)imageWillLoad:(NSString*)imgURL attributes:(NSDictionary*)attributes;
 
 @end
 
@@ -43,6 +43,7 @@
     NSString* currentHyperLink;
     BOOL isLongPress;
     NSMutableArray* viewItems;
+    int viewTag;
 }
 
 @property(nonatomic,assign)id<DCLabelDelegate>delegate;

@@ -28,7 +28,7 @@ DCLabel extends UILabel attributedText property to make embedding images/video c
 	}
 	
 	//delegate method
-	-(UIView*)imageWillLoad:(NSString*)imgURL
+	-(UIView*)imageWillLoad:(NSString*)imgURL attributes:(NSDictionary*)attributes
 	{
 		//this is using my network imageView DCImageView. Feel free to use your favorite one.
 		//you can find DCImageView here: https://github.com/daltoniam/DCImageView
