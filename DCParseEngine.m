@@ -142,8 +142,12 @@
                         }
                     }
                     //if(range.keepTag)
-                        i += range.closeTag.length-1;
+                    i += range.closeTag.length-1;
                     
+                    /*if(range.end == 0)
+                        embedOffset++;
+                    else
+                        range.end += embedOffset;*/
                     [currentRanges removeObject:range];
                     //update the offset of the tag after this one
                     if(totalChange > 0)
@@ -210,6 +214,7 @@
         found = NO;
     }
     //NSLog(@"endString: %@",endString);
+    int embedOffset = 0; //when a view is embed, we the end ranges of links get messed up
     NSMutableAttributedString* attribString = [[NSMutableAttributedString alloc] initWithString:endString attributes:nil];
     [attribString setFont:[UIFont systemFontOfSize:17]];
     for(DCStyleRange* range in collectRanges)
@@ -222,6 +227,10 @@
                 array = range.block(range.openTag,range.closeTag,[endString substringWithRange:rangeLoc]);
             if(array)
             {
+                if(range.end == 0)
+                    embedOffset++;
+                else
+                    rangeLoc.length += embedOffset;
                 for(id object in array)
                 {
                     if([object isKindOfClass:[NSString class]])
