@@ -228,9 +228,13 @@
             if(array)
             {
                 if(range.end == 0)
-                    embedOffset++;
+                    embedOffset = 1;//embedOffset++;
                 else
+                {
                     rangeLoc.length += embedOffset;
+                    embedOffset = 0;
+                }
+                //NSLog(@"embedOffset: %d and rangeLoc.length: %d",embedOffset,rangeLoc.length);
                 for(id object in array)
                 {
                     if([object isKindOfClass:[NSString class]])
