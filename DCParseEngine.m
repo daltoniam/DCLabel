@@ -141,22 +141,25 @@
                             totalChange += range.closeTag.length;
                         }
                     }
-                    if(range.keepTag)
+                    //if(range.keepTag)
                         i += range.closeTag.length-1;
                     
                     [currentRanges removeObject:range];
                     //update the offset of the tag after this one
-                    int index = [collectRanges indexOfObject:range];
-                    for(int i = index+1; i < collectRanges.count; i++)
+                    if(totalChange > 0)
                     {
-                        DCStyleRange* range = [collectRanges objectAtIndex:i];
-                        range.start -= totalChange;
+                        int index = [collectRanges indexOfObject:range];
+                        for(int i = index; i < collectRanges.count-1; i++)
+                        {
+                            DCStyleRange* range = [collectRanges objectAtIndex:i];
+                            range.start -= totalChange;
+                        }
                     }
                     //clean up any pattern that is no longer needed
                     NSMutableArray* removeArray = nil;
                     for(DCStyleRange* range in currentRanges)
                     {
-                        if(range.start > endString.length)
+                        if(range.start+range.end > endString.length)
                         {
                             if(!removeArray)
                                 removeArray = [NSMutableArray array];
@@ -211,7 +214,7 @@
     [attribString setFont:[UIFont systemFontOfSize:17]];
     for(DCStyleRange* range in collectRanges)
     {
-        if(range.start+range.end <= endString.length)
+        if(range.start != NSNotFound && range.start > -1 && range.start+range.end <= endString.length && range.end != NSNotFound)
         {
             NSRange rangeLoc = NSMakeRange(range.start, range.end);
             NSArray* array = range.attribs;
@@ -284,7 +287,7 @@
     if(range.location != NSNotFound)
     {
         NSString* valid = [string substringWithRange:NSMakeRange(index, range.location)];
-        if([valid isEqualToString:[tagName substringToIndex:range.location]])
+        if([valid isEqualToString:[tagName substringToIndex:range.location]] && range.location != string.length)
         {
             unichar end = [tagName characterAtIndex:range.location+1];
             NSString* last = [tagName substringFromIndex:range.location+1];
