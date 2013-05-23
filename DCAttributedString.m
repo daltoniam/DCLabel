@@ -227,7 +227,7 @@
 -(void)addImage:(NSString*)link height:(float)height width:(float)width index:(int)index attributes:(NSDictionary*)attrs
 {
     NSMutableAttributedString* string = [[NSMutableAttributedString alloc] initWithString:@" "];
-    NSRange range = NSMakeRange(0, 1);
+    NSRange range = NSMakeRange(0, 1); 
     [string addRunDelegate:range height:height width:width];
     [string addAttribute:DC_IMAGE_LINK value:link range:range];
     [string addAttributes:attrs range:range];

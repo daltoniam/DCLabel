@@ -227,14 +227,8 @@
                 array = range.block(range.openTag,range.closeTag,[endString substringWithRange:rangeLoc]);
             if(array)
             {
-                if(range.end == 0)
-                    embedOffset = 1;//embedOffset++;
-                else
-                {
-                    rangeLoc.length += embedOffset;
-                    embedOffset = 0;
-                }
-                //NSLog(@"embedOffset: %d and rangeLoc.length: %d",embedOffset,rangeLoc.length);
+                range.start += embedOffset;
+                //range.end += embedOffset;
                 for(id object in array)
                 {
                     if([object isKindOfClass:[NSString class]])
@@ -276,6 +270,7 @@
                                 if(w <= 0)
                                     w = self.embedWidth;
                                 [attribString addImage:value height:h width:w index:range.start attributes:object];
+                                embedOffset++;
                             }
                             else
                                 [attribString addAttribute:key value:value range:rangeLoc];
