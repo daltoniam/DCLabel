@@ -229,6 +229,7 @@
             {
                 range.start += embedOffset;
                 //range.end += embedOffset;
+                rangeLoc.location += embedOffset;
                 for(id object in array)
                 {
                     if([object isKindOfClass:[NSString class]])
@@ -259,9 +260,7 @@
                         for(id key in object)
                         {
                             id value = [object objectForKey:key];
-                            if([key isEqualToString:DC_LINK_TEXT])
-                                [attribString setTextIsHyperLink:value range:rangeLoc];
-                            else if([key isEqualToString:DC_IMAGE_LINK])
+                            if([key isEqualToString:DC_IMAGE_LINK])
                             {
                                 float h = [[object objectForKey:@"height"] floatValue];
                                 float w = [[object objectForKey:@"width"] floatValue];
@@ -272,6 +271,8 @@
                                 [attribString addImage:value height:h width:w index:range.start attributes:object];
                                 embedOffset++;
                             }
+                            else if([key isEqualToString:DC_LINK_TEXT])
+                                [attribString setTextIsHyperLink:value range:rangeLoc];
                             else
                                 [attribString addAttribute:key value:value range:rangeLoc];
                         }
