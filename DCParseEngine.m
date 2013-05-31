@@ -234,20 +234,22 @@
                 {
                     if([object isKindOfClass:[NSString class]])
                     {
+                        NSRange rangeText = rangeLoc;
+                        rangeText.location -= embedOffset;   
                         NSString* style = object;
                         if([style isEqualToString:DC_BOLD_TEXT])
-                            [attribString setTextBold:YES range:rangeLoc];
+                            [attribString setTextBold:YES range:rangeText];
                         else if([style isEqualToString:DC_ITALIC_TEXT])
-                            [attribString setTextItalic:YES range:rangeLoc];
+                            [attribString setTextItalic:YES range:rangeText];
                         else if([style isEqualToString:DC_UNDERLINE_TEXT])
-                            [attribString setTextIsUnderlined:YES range:rangeLoc];
+                            [attribString setTextIsUnderlined:YES range:rangeText];
                         else if([style isEqualToString:DC_STRIKE_THROUGH_TEXT])
-                            [attribString setTextStrikeOut:YES range:rangeLoc];
+                            [attribString setTextStrikeOut:YES range:rangeText];
                     }
                     else if([object isKindOfClass:[UIFont class]])
                     {
                         UIFont* font = object;
-                        [attribString setFont:font];
+                        [attribString setFont:font range:rangeLoc];
                     }
                     else if([object isKindOfClass:[UIColor class]])
                     {
