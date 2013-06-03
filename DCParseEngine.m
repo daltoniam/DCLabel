@@ -216,7 +216,7 @@
     //NSLog(@"endString: %@",endString);
     int embedOffset = 0; //when a view is embed, we the end ranges of links get messed up
     NSMutableAttributedString* attribString = [[NSMutableAttributedString alloc] initWithString:endString attributes:nil];
-    [attribString setFont:[UIFont systemFontOfSize:17]];
+    [attribString setFont:[UIFont systemFontOfSize:15]];
     for(DCStyleRange* range in collectRanges)
     {
         if(range.start != NSNotFound && range.start > -1 && range.start+range.end <= endString.length && range.end != NSNotFound)
