@@ -50,6 +50,11 @@
         CGContextSetShadow(ctx, self.textShadowOffset, self.textShadowBlur);
         CGContextSetShadowWithColor(ctx, self.textShadowOffset, self.textShadowBlur, self.textShadowColor.CGColor);
     }
+    /*if(self.text && !self.attributedText)
+    {
+        [super drawTextInRect:rect];
+        return;
+    }*/
     if(!isDrawing)
     {
         isDrawing = YES;
@@ -294,10 +299,12 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 -(void)setText:(NSString *)text
 {
+    //self.attributedText = nil;
     if(textFrame)
         CFRelease(textFrame);
     textFrame = NULL;
     [super setText:text];
+    [self setNeedsDisplay];
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 -(BOOL)didLoadURL:(NSString*)url
