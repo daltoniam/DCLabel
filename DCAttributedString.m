@@ -224,6 +224,24 @@
     [self setTextItalic:isItalic range:range];
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+-(void)setUnOrderedList:(int)index
+{
+    CTFontRef currentFont = (__bridge CTFontRef)[self attribute:(NSString*)kCTFontAttributeName atIndex:index effectiveRange:NULL];
+    CGFloat fontSize = CTFontGetSize(currentFont);
+    NSRange range = NSMakeRange(index, 1);
+    [self addRunDelegate:range height:fontSize width:fontSize];
+    [self addAttribute:DC_UNORDERED_LIST value:[NSNumber numberWithBool:YES] range:range];
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+-(void)setOrderedList:(int)index number:(int)number
+{
+    CTFontRef currentFont = (__bridge CTFontRef)[self attribute:(NSString*)kCTFontAttributeName atIndex:index effectiveRange:NULL];
+    CGFloat fontSize = CTFontGetSize(currentFont);
+    NSRange range = NSMakeRange(index, 1);
+    [self addRunDelegate:range height:fontSize width:fontSize];
+    [self addAttribute:DC_ORDERED_LIST value:[NSNumber numberWithInt:number] range:range];
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 -(void)addImage:(NSString*)link height:(float)height width:(float)width index:(int)index attributes:(NSDictionary*)attrs
 {
     NSMutableAttributedString* string = [[NSMutableAttributedString alloc] initWithString:@" "];

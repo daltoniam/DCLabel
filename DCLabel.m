@@ -45,6 +45,7 @@
 - (void)drawTextInRect:(CGRect)rect
 {
     CGContextRef ctx = UIGraphicsGetCurrentContext();
+    CGAffineTransform save = CGContextGetTextMatrix(ctx);
     if(self.textShadowColor)
     {
         CGContextSetShadow(ctx, self.textShadowOffset, self.textShadowBlur);
@@ -98,7 +99,36 @@
                     //CTFontRef font = (__bridge CTFontRef)[attributes objectForKey:(NSString*)kCTFontAttributeName];
                     //CGFloat fontSize = CTFontGetSize(font);
                     //int fontOffset = (fontSize*2);
-                    
+                    NSNumber* list = [attributes objectForKey:DC_UNORDERED_LIST];
+                    if([list boolValue])
+                    {
+                        int pad = floorf(width/1.5);
+                        UIColor* color = [attributes objectForKey:NSForegroundColorAttributeName];
+                        if(!color)
+                            color = [UIColor blackColor];
+                        CGContextSaveGState(ctx);
+                        CGContextSetFillColorWithColor(ctx,color.CGColor);
+                        CGContextFillEllipseInRect(ctx, CGRectMake(xOffset+(pad/4), origins[lineIndex].y+1.5, width-pad, height-pad));
+                        CGContextRestoreGState(ctx);
+                    }
+                    list = [attributes objectForKey:DC_ORDERED_LIST];
+                    if(list)
+                    {
+                        CTFontRef font = (__bridge CTFontRef)[attributes objectForKey:(NSString*)kCTFontAttributeName];
+                        CGFloat fontSize = CTFontGetSize(font);
+                        NSString *fontName = (__bridge NSString *)CTFontCopyName(font, kCTFontPostScriptNameKey);
+                        //int pad = floorf(width/1.7);
+                        UIColor* color = [attributes objectForKey:NSForegroundColorAttributeName];
+                        if(!color)
+                            color = [UIColor blackColor];
+                        CGContextSaveGState(ctx);
+                        CGContextTranslateCTM(ctx, 0, self.bounds.size.height);
+                        CGContextScaleCTM(ctx, 1.0, -1.0);
+                        CGContextSetTextMatrix(ctx, save);
+                        NSString* text = [NSString stringWithFormat:@"%d.",[list intValue]];
+                        [text drawInRect:CGRectMake(xOffset,  self.frame.size.height - (origins[lineIndex].y + height), width, height) withFont:[UIFont fontWithName:fontName size:fontSize]];
+                        CGContextRestoreGState(ctx);
+                    }
                     NSString* hyperlink = [attributes objectForKey:DC_LINK_TEXT];
                     if(hyperlink)
                     {

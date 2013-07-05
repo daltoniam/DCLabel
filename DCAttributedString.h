@@ -15,6 +15,8 @@ static NSString* const DC_UNDERLINE_TEXT = @"DCUnderline";
 static NSString* const DC_STRIKE_THROUGH_TEXT = @"DCStrikeOut";
 static NSString* const DC_LINK_TEXT = @"DCHyperLink";
 static NSString* const DC_IMAGE_LINK = @"DCImageLink";
+static NSString* const DC_UNORDERED_LIST = @"DCUnOrderedList";
+static NSString* const DC_ORDERED_LIST = @"DCOrderedList";
 
 @interface NSMutableAttributedString (DCAttributedString)
 
@@ -44,5 +46,9 @@ static NSString* const DC_IMAGE_LINK = @"DCImageLink";
 -(void)setFontFamily:(NSString*)fontFamily size:(CGFloat)size bold:(BOOL)isBold italic:(BOOL)isItalic;
 
 -(void)addImage:(NSString*)link height:(float)height width:(float)width index:(int)index attributes:(NSDictionary*)attrs;
+
+//add unorder list to the string
+-(void)setUnOrderedList:(int)index;
+-(void)setOrderedList:(int)index number:(int)number;
 
 @end

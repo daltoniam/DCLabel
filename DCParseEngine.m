@@ -19,7 +19,8 @@
 @property(nonatomic,strong)NSString* closeTag;
 @property(nonatomic,strong)NSArray* attributes;
 @property(nonatomic,assign)DCPatternBlock callback;
-@property(nonatomic,assign)BOOL keepTag;
+@property(nonatomic,assign)BOOL keepOpen;
+@property(nonatomic,assign)BOOL keepClose;
 
 +(DCParsePattern*)patternWithTag:(NSString*)open close:(NSString*)close attribs:(NSArray*)attrs;
 +(DCParsePattern*)patternWithTag:(NSString*)open close:(NSString*)close callback:(DCPatternBlock)block;
@@ -34,7 +35,8 @@
 @property(nonatomic,assign)NSString* closeTag;
 @property(nonatomic,strong)NSString* openTag;
 @property(nonatomic,assign)DCPatternBlock block;
-@property(nonatomic,assign)BOOL keepTag;
+@property(nonatomic,assign)BOOL keepOpen;
+@property(nonatomic,assign)BOOL keepClose;
 
 
 @end
@@ -58,28 +60,30 @@
 //this is used when the attributes for a tag match will be known ahead of time. (e.g: hello *world* '*' bolds the text)
 -(void)addPattern:(NSString*)openTag close:(NSString*)closeTag attributes:(NSArray*)attribs
 {
-    [self addPattern:openTag close:closeTag attributes:attribs keepTags:NO];
+    [self addPattern:openTag close:closeTag attributes:attribs keepOpen:NO keepClose:NO];
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 -(void)addPattern:(NSString*)openTag close:(NSString*)closeTag block:(DCPatternBlock)callback
 {
-    [self addPattern:openTag close:closeTag keepTags:NO block:callback];
+    [self addPattern:openTag close:closeTag keepOpen:NO keepClose:NO block:callback];
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //this is used when the attributes for a tag match will be known ahead of time. (e.g: hello *world* '*' bolds the text)
--(void)addPattern:(NSString*)openTag close:(NSString*)closeTag attributes:(NSArray*)attribs keepTags:(BOOL)keep
+-(void)addPattern:(NSString*)openTag close:(NSString*)closeTag attributes:(NSArray*)attribs keepOpen:(BOOL)open keepClose:(BOOL)close
 {
     [self purgePatterns:openTag close:closeTag];
     DCParsePattern* pattern = [DCParsePattern patternWithTag:openTag close:closeTag attribs:attribs];
-    pattern.keepTag = keep;
+    pattern.keepOpen = open;
+    pattern.keepClose = close;
     [patterns addObject:pattern];
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
--(void)addPattern:(NSString*)openTag close:(NSString*)closeTag keepTags:(BOOL)keep block:(DCPatternBlock)callback
+-(void)addPattern:(NSString*)openTag close:(NSString*)closeTag keepOpen:(BOOL)open keepClose:(BOOL)close block:(DCPatternBlock)callback
 {
     [self purgePatterns:openTag close:closeTag];
     DCParsePattern* pattern = [DCParsePattern patternWithTag:openTag close:closeTag callback:callback];
-    pattern.keepTag = keep;
+    pattern.keepOpen = open;
+    pattern.keepClose = close;
     [patterns addObject:pattern];
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -100,7 +104,8 @@
             BOOL match = NO;
             if(checkChar == currentChar)
                 match = YES;
-            else if(isspace(checkChar) && (isspace(currentChar) || currentChar == '\n' || i == string.length-1) && range.closeTag.length == 1 )
+            else if(isspace(checkChar) && (isspace(currentChar) || currentChar == '\n' || i == string.length-1) && range.closeTag.length == 1 &&
+                    ![range.closeTag isEqualToString:@"\n"])
             {
                 isTag = YES;
                 match = YES;
@@ -118,7 +123,7 @@
                 {
                     int totalChange = 0;
                     range.end = (i-offset) - range.start;
-                    if(!range.keepTag)
+                    if(!range.keepOpen)
                     {
                         range.end -= range.openTag.length;
                         //NSLog(@"start: %d endString length: %d",range.start-offset,endString.length);
@@ -130,7 +135,7 @@
                         }
                     }
 
-                    if(!range.keepTag)
+                    if(!range.keepClose)
                     {
                         //NSLog(@"i %d end: %d length: %d",i,(i-offset)+range.closeTag.length,endString.length);
                         int len = (i-offset)+range.closeTag.length;
@@ -157,17 +162,19 @@
                         {
                             DCStyleRange* range = [collectRanges objectAtIndex:i];
                             range.start -= totalChange;
+                            if(range.start < 0)
+                                range.start = 0;
                         }
                     }
                     //clean up any pattern that is no longer needed
                     NSMutableArray* removeArray = nil;
-                    for(DCStyleRange* range in currentRanges)
+                    for(DCStyleRange* checkRange in currentRanges)
                     {
-                        if(range.start+range.end > endString.length)
+                        if(checkRange.start+checkRange.end > endString.length || [checkRange.openTag isEqualToString:range.openTag])
                         {
                             if(!removeArray)
                                 removeArray = [NSMutableArray array];
-                            [removeArray addObject:range];
+                            [removeArray addObject:checkRange];
                         }
                     }
                     [currentRanges removeObjectsInArray:removeArray];
@@ -178,6 +185,7 @@
         }
         if(!found)
         {
+            int ind = 0;
             for(DCParsePattern* pattern in patterns)
             {
                 if([pattern.openTag characterAtIndex:0] == [string characterAtIndex:i])
@@ -192,28 +200,51 @@
                     }
                     if(isTag)
                     {
+                        DCStyleRange* range = nil;
+                        for(DCStyleRange* oldRange in currentRanges)
+                        {
+                            if([oldRange.openTag isEqualToString:pattern.openTag] && [oldRange.closeTag isEqualToString:pattern.closeTag])
+                            {
+                                range = oldRange;
+                                break;
+                            }
+                        }
                         //NSLog(@"pattern openTag: %@",pattern.openTag);
                         //NSLog(@"open tag: %d",i);
-                        DCStyleRange* range = [[DCStyleRange alloc] init];
+                        if(!range)
+                        {
+                            range = [[DCStyleRange alloc] init];
+                            [currentRanges addObject:range];
+                            [collectRanges addObject:range];
+                        }
                         range.start = i-offset;
-                        range.attribs = pattern.attributes;
-                        range.closeTag = pattern.closeTag;
-                        range.openTag = pattern.openTag;
-                        range.block = pattern.callback;
-                        range.keepTag = pattern.keepTag;
-                        [currentRanges addObject:range];
-                        [collectRanges addObject:range];
+                        [self updateRange:range pattern:pattern];
                         i += pattern.openTag.length-1;
                         if(uTag)
                             pattern.openTag = currentTag;
+                        //add any other patterns with the same openingTag and different closing tag
+                        for(int k = ind+1; k < patterns.count; k++)
+                        {
+                            DCParsePattern* match = [patterns objectAtIndex:k];
+                            if([match.openTag isEqualToString:pattern.openTag])
+                            {
+                                DCStyleRange* matchRange = [[DCStyleRange alloc] init];
+                                matchRange.start = range.start;
+                                [self updateRange:matchRange pattern:match];
+                                [currentRanges addObject:matchRange];
+                                [collectRanges addObject:matchRange];
+                            }
+                        }
                         break;
                     }
                 }
+                ind++;
             }
         }
         found = NO;
     }
     //NSLog(@"endString: %@",endString);
+    int numIndex = 0;
     int embedOffset = 0; //when a view is embed, we the end ranges of links get messed up
     NSMutableAttributedString* attribString = [[NSMutableAttributedString alloc] initWithString:endString attributes:nil];
     [attribString setFont:[UIFont systemFontOfSize:15]];
@@ -245,6 +276,10 @@
                             [attribString setTextIsUnderlined:YES range:rangeText];
                         else if([style isEqualToString:DC_STRIKE_THROUGH_TEXT])
                             [attribString setTextStrikeOut:YES range:rangeText];
+                        else if([style isEqualToString:DC_UNORDERED_LIST])
+                            [attribString setUnOrderedList:rangeText.location];
+                        else if([style isEqualToString:DC_ORDERED_LIST])
+                            [attribString setOrderedList:rangeText.location number:++numIndex];
                     }
                     else if([object isKindOfClass:[UIFont class]])
                     {
@@ -334,6 +369,16 @@
     }
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+-(void)updateRange:(DCStyleRange*)range pattern:(DCParsePattern*)pattern
+{
+    range.attribs = pattern.attributes;
+    range.closeTag = pattern.closeTag;
+    range.openTag = pattern.openTag;
+    range.block = pattern.callback;
+    range.keepOpen = pattern.keepOpen;
+    range.keepClose = pattern.keepClose;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //factory methods
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //html parser
@@ -363,20 +408,42 @@
 +(DCParseEngine*)engineWithMDParser
 {
     DCParseEngine* engine = [[DCParseEngine alloc] init];
-    [engine addPattern:@"***" close:@"***" attributes:[NSArray arrayWithObjects:DC_ITALIC_TEXT,DC_BOLD_TEXT, nil]];
-    [engine addPattern:@"**" close:@"**" attributes:[NSArray arrayWithObject:DC_BOLD_TEXT]];
-    [engine addPattern:@"*" close:@"*" attributes:[NSArray arrayWithObject:DC_ITALIC_TEXT]];
-    [engine addPattern:@"___" close:@"___" attributes:[NSArray arrayWithObjects:DC_ITALIC_TEXT,DC_BOLD_TEXT, nil]];
-    [engine addPattern:@"__" close:@"__" attributes:[NSArray arrayWithObject:DC_BOLD_TEXT]];
-    [engine addPattern:@"_" close:@"_" attributes:[NSArray arrayWithObject:DC_ITALIC_TEXT]];
+    [engine addPattern:@"***" close:@"***" attributes:@[DC_ITALIC_TEXT,DC_BOLD_TEXT]];
+    [engine addPattern:@"**" close:@"**" attributes:@[DC_BOLD_TEXT]];
+    [engine addPattern:@"*" close:@"*" attributes:@[DC_ITALIC_TEXT]];
+    [engine addPattern:@"___" close:@"___" attributes:@[DC_ITALIC_TEXT,DC_BOLD_TEXT]];
+    [engine addPattern:@"__" close:@"__" attributes:@[DC_BOLD_TEXT]];
+    [engine addPattern:@"_" close:@"_" attributes:@[DC_ITALIC_TEXT]];
     [engine addPattern:@"![" close:@"](?)" block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
         NSString* link = [closeTag substringWithRange:NSMakeRange(2, closeTag.length-3)];
-        return [NSArray arrayWithObjects:[NSDictionary dictionaryWithObject:link forKey:DC_IMAGE_LINK],nil];
+        return @[@{DC_IMAGE_LINK: link}];
     }];
     [engine addPattern:@"[" close:@"](?)" block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
         NSString* link = [closeTag substringWithRange:NSMakeRange(2, closeTag.length-3)];
-        return [NSArray arrayWithObjects:[UIColor colorWithRed:0 green:0 blue:238.0f/255.0f alpha:1],[NSDictionary dictionaryWithObject:link forKey:DC_LINK_TEXT],nil];
+        return @[[UIColor colorWithRed:0 green:0 blue:238.0f/255.0f alpha:1],@{DC_LINK_TEXT: link}];
     }];
+    [engine addPattern:@"-" close:@" " keepOpen:NO keepClose:YES block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
+        return @[DC_UNORDERED_LIST];
+    }];
+    [engine addPattern:@"+" close:@" " keepOpen:NO keepClose:YES block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
+        return @[DC_UNORDERED_LIST];
+    }];
+    for(int i = 1; i < 10; i++)
+    {
+        [engine addPattern:[NSString stringWithFormat:@"%d.",i] close:@" " keepOpen:NO keepClose:YES block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
+            return @[DC_ORDERED_LIST];
+        }];
+    }
+    int fontSize = 11;
+    NSString* tag = @"######";
+    for(int i = 0; i < 6; i++)
+    {
+        [engine addPattern:tag close:tag attributes:[NSArray arrayWithObjects:[UIFont boldSystemFontOfSize:fontSize], nil]];
+        [engine addPattern:tag close:@"\n" attributes:[NSArray arrayWithObjects:[UIFont boldSystemFontOfSize:fontSize], nil] keepOpen:NO keepClose:YES];
+        fontSize += 2;
+        if(tag.length > 1)
+            tag = [tag substringFromIndex:1];
+    }
     return engine;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

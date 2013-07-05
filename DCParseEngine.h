@@ -24,10 +24,10 @@ typedef NSArray* (^DCPatternBlock)(NSString* openTag,NSString* closeTag,NSString
 -(void)addPattern:(NSString*)openTag close:(NSString*)closeTag block:(DCPatternBlock)callback;
 
 //does the same as above, but can specific if tags are removed or not
--(void)addPattern:(NSString*)openTag close:(NSString*)closeTag attributes:(NSArray*)attribs keepTags:(BOOL)keep;
+-(void)addPattern:(NSString*)openTag close:(NSString*)closeTag attributes:(NSArray*)attribs keepOpen:(BOOL)open keepClose:(BOOL)close;
 
 //does the same as above, but can specific if tags are removed or not
--(void)addPattern:(NSString*)openTag close:(NSString*)closeTag keepTags:(BOOL)keep block:(DCPatternBlock)callback;
+-(void)addPattern:(NSString*)openTag close:(NSString*)closeTag keepOpen:(BOOL)open keepClose:(BOOL)close block:(DCPatternBlock)callback;
 
 //start the parsing of string.
 -(NSAttributedString*)parse:(NSString*)string;
