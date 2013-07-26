@@ -268,6 +268,8 @@
                         NSRange rangeText = rangeLoc;
                         rangeText.location -= embedOffset;   
                         NSString* style = object;
+                        if(rangeText.location == 0 && rangeText.length == 0)
+                            continue;
                         if([style isEqualToString:DC_BOLD_TEXT])
                             [attribString setTextBold:YES range:rangeText];
                         else if([style isEqualToString:DC_ITALIC_TEXT])
