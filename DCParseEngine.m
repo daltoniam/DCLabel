@@ -178,6 +178,11 @@
                         }
                     }
                     [currentRanges removeObjectsInArray:removeArray];
+                    for(DCStyleRange* checkRange in collectRanges)
+                    {
+                        if(checkRange.start > range.start && checkRange.end < range.end && checkRange != range)
+                            checkRange.start -= range.openTag.length;
+                    }
                     found = YES;
                     break;
                 }
@@ -387,10 +392,10 @@
 +(DCParseEngine*)engineWithHTMLParser
 {
     DCParseEngine* engine = [[DCParseEngine alloc] init];
-    [engine addPattern:@"<b>" close:@"</b>" attributes:[NSArray arrayWithObject:DC_BOLD_TEXT]];
-    [engine addPattern:@"<strong>" close:@"</strong>" attributes:[NSArray arrayWithObject:DC_BOLD_TEXT]];
-    [engine addPattern:@"<i>" close:@"</i>" attributes:[NSArray arrayWithObject:DC_ITALIC_TEXT]];
-    [engine addPattern:@"<em>" close:@"</em>" attributes:[NSArray arrayWithObject:DC_ITALIC_TEXT]];
+    [engine addPattern:@"<b>" close:@"</b>" attributes:@[DC_BOLD_TEXT]];
+    [engine addPattern:@"<strong>" close:@"</strong>" attributes:@[DC_BOLD_TEXT]];
+    [engine addPattern:@"<i>" close:@"</i>" attributes:@[DC_ITALIC_TEXT]];
+    [engine addPattern:@"<em>" close:@"</em>" attributes:@[DC_ITALIC_TEXT]];
     [engine addPattern:@"<a?>" close:@"</a>" block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
         NSRange range = [openTag rangeOfString:@"href="];
         int start = range.location + range.length + 1;
@@ -401,7 +406,13 @@
         else
             end = openTag.length-2;
         NSString* link = [openTag substringWithRange:NSMakeRange(start, end-start)];
-        return [NSArray arrayWithObjects:[UIColor colorWithRed:0 green:0 blue:238.0f/255.0f alpha:1],[NSDictionary dictionaryWithObject:link forKey:DC_LINK_TEXT],nil];
+        return @[[UIColor colorWithRed:0 green:0 blue:238.0f/255.0f alpha:1],@{DC_LINK_TEXT: link}];
+    }];
+    [engine addPattern:@"<span?>" close:@"</span>" block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
+        NSLog(@"openTag: %@",openTag);
+        NSLog(@"closeTag: %@",closeTag);
+        NSLog(@"text: %@",text);
+        return nil;
     }];
     return engine;
 }
