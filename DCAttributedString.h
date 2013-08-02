@@ -44,6 +44,8 @@ static NSString* const DC_ORDERED_LIST = @"DCOrderedList";
 
 -(void)setFontFamily:(NSString*)fontFamily size:(CGFloat)size bold:(BOOL)isBold italic:(BOOL)isItalic range:(NSRange)range;
 -(void)setFontFamily:(NSString*)fontFamily size:(CGFloat)size bold:(BOOL)isBold italic:(BOOL)isItalic;
+-(void)setTextSize:(CGFloat)size;
+-(void)setTextSize:(CGFloat)size range:(NSRange)range;
 
 -(void)addImage:(NSString*)link height:(float)height width:(float)width index:(int)index attributes:(NSDictionary*)attrs;
 

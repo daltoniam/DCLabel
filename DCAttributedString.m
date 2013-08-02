@@ -224,6 +224,20 @@
     [self setTextItalic:isItalic range:range];
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+-(void)setTextSize:(CGFloat)size
+{
+    [self setTextSize:size range:NSMakeRange(0, self.length)];
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+-(void)setTextSize:(CGFloat)size range:(NSRange)range
+{
+    CTFontRef currentFont = (__bridge CTFontRef)[self attribute:(NSString*)kCTFontAttributeName atIndex:index effectiveRange:NULL];
+    NSString *fontName = (__bridge NSString *)CTFontCopyName(currentFont, kCTFontPostScriptNameKey);
+    UIFont *font = [UIFont fontWithName:fontName size:size];
+    [self removeAttribute:(NSString*)kCTFontAttributeName range:range]; // remove then add for apple leak.
+    [self addAttribute:(NSString*)kCTFontAttributeName value:font range:range];
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 -(void)setUnOrderedList:(int)index
 {
     CTFontRef currentFont = (__bridge CTFontRef)[self attribute:(NSString*)kCTFontAttributeName atIndex:index effectiveRange:NULL];

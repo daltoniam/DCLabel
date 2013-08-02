@@ -155,7 +155,7 @@
                         range.end += embedOffset;*/
                     [currentRanges removeObject:range];
                     //update the offset of the tag after this one
-                    if(totalChange > 0)
+                    /*if(totalChange > 0)
                     {
                         int index = [collectRanges indexOfObject:range];
                         for(int i = index; i < collectRanges.count-1; i++)
@@ -165,7 +165,7 @@
                             if(range.start < 0)
                                 range.start = 0;
                         }
-                    }
+                    }*/
                     //clean up any pattern that is no longer needed
                     NSMutableArray* removeArray = nil;
                     for(DCStyleRange* checkRange in currentRanges)
@@ -284,9 +284,18 @@
                         else if([style isEqualToString:DC_STRIKE_THROUGH_TEXT])
                             [attribString setTextStrikeOut:YES range:rangeText];
                         else if([style isEqualToString:DC_UNORDERED_LIST])
-                            [attribString setUnOrderedList:rangeText.location];
+                            [attribString setUnOrderedList:rangeText.location-1];
                         else if([style isEqualToString:DC_ORDERED_LIST])
-                            [attribString setOrderedList:rangeText.location number:++numIndex];
+                            [attribString setOrderedList:rangeText.location-1 number:++numIndex];
+                        else if([style isEqualToString:DC_HTML_UNKNOWN_LIST])
+                        {
+                            NSDictionary* attributes = [attribString attributesAtIndex:rangeText.location effectiveRange:NULL];
+                            if(attributes[DC_HTML_ORDER_LIST])
+                                [attribString setOrderedList:rangeText.location-1 number:++numIndex];
+                            else
+                                [attribString setUnOrderedList:rangeText.location-1];
+                        }
+                        
                     }
                     else if([object isKindOfClass:[UIFont class]])
                     {
@@ -317,6 +326,8 @@
                             }
                             else if([key isEqualToString:DC_LINK_TEXT])
                                 [attribString setTextIsHyperLink:value range:rangeLoc];
+                            else if([key isEqualToString:DC_TEXT_SIZE])
+                                [attribString setTextSize:[value floatValue] range:rangeLoc];
                             else
                                 [attribString addAttribute:key value:value range:rangeLoc];
                         }
@@ -408,11 +419,61 @@
         NSString* link = [openTag substringWithRange:NSMakeRange(start, end-start)];
         return @[[UIColor colorWithRed:0 green:0 blue:238.0f/255.0f alpha:1],@{DC_LINK_TEXT: link}];
     }];
+    [engine addPattern:@"<p>" close:@"</p>" attributes:nil];
+    [engine addPattern:@"<ol>" close:@"</ol>" attributes:@[@{DC_HTML_ORDER_LIST: [NSNumber numberWithBool:YES]}]];
+    [engine addPattern:@"<ul>" close:@"</ul>" attributes:@[@{DC_HTML_UNORDER_LIST: [NSNumber numberWithBool:YES]}]];
+    [engine addPattern:@"<li>" close:@"</li>" block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
+        return @[DC_HTML_UNKNOWN_LIST];
+    }];
     [engine addPattern:@"<span?>" close:@"</span>" block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
-        NSLog(@"openTag: %@",openTag);
-        NSLog(@"closeTag: %@",closeTag);
-        NSLog(@"text: %@",text);
-        return nil;
+        
+        NSMutableArray* collect = [NSMutableArray array];
+        NSRange find = [openTag rangeOfString:@"font-size:"];
+        if(find.location != NSNotFound)
+        {
+            int pos = find.location+find.length;
+            NSRange end = [openTag rangeOfString:@";" options:0 range:NSMakeRange(pos, [openTag length]-pos)];
+            if(end.location == NSNotFound)
+                end = [openTag rangeOfString:@"'" options:0 range:NSMakeRange(pos, [openTag length]-pos)];
+            if(end.location == NSNotFound)
+                end = [openTag rangeOfString:@"\"" options:0 range:NSMakeRange(pos, [openTag length]-pos)];
+            if(end.location == NSNotFound)
+                end = NSMakeRange([openTag length],0);
+            CGFloat size = [[openTag substringWithRange:end] floatValue];
+            if(size > 0)
+                [collect addObject:@{DC_TEXT_SIZE: [NSNumber numberWithFloat:size]}];
+        }
+        find = [openTag rangeOfString:@"text-decoration:"];
+        if(find.location != NSNotFound)
+        {
+            int pos = find.location+find.length;
+            if(pos != NSNotFound && openTag.length > pos)
+            {
+                NSString* decorations = [openTag substringWithRange:NSMakeRange(pos, [openTag length]-pos)];
+                if([decorations rangeOfString:@"line-through"].location != NSNotFound)
+                    [collect addObject:DC_UNDERLINE_TEXT];
+                if([decorations rangeOfString:@"underline"].location != NSNotFound)
+                    [collect addObject:DC_STRIKE_THROUGH_TEXT];
+            }
+        }
+        find = [openTag rangeOfString:@"color:"];
+        if(find.location != NSNotFound)
+        {
+            int pos = find.location+find.length;
+            NSRange end = [openTag rangeOfString:@";" options:0 range:NSMakeRange(pos, [openTag length]-pos)];
+            if(end.location == NSNotFound)
+                end = [openTag rangeOfString:@" " options:0 range:NSMakeRange(pos, [openTag length]-pos)];
+            if(end.location == NSNotFound)
+                end = [openTag rangeOfString:@"\n" options:0 range:NSMakeRange(pos, [openTag length]-pos)];
+            if(end.location != NSNotFound)
+            {
+                NSString* cssstring = [openTag substringWithRange:NSMakeRange(pos, end.location-pos)];
+                [collect addObject:[DCParseEngine colorFromHexCode:cssstring]];
+            }
+        }
+
+        
+        return collect;
     }];
     return engine;
 }
@@ -458,6 +519,30 @@
             tag = [tag substringFromIndex:1];
     }
     return engine;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
++(UIColor*)colorFromHexCode:(NSString *)hexString
+{
+    NSString *cleanString = [hexString stringByReplacingOccurrencesOfString:@"#" withString:@""];
+    if([cleanString length] == 3)
+    {
+        cleanString = [NSString stringWithFormat:@"%@%@%@%@%@%@",
+                       [cleanString substringWithRange:NSMakeRange(0, 1)],[cleanString substringWithRange:NSMakeRange(0, 1)],
+                       [cleanString substringWithRange:NSMakeRange(1, 1)],[cleanString substringWithRange:NSMakeRange(1, 1)],
+                       [cleanString substringWithRange:NSMakeRange(2, 1)],[cleanString substringWithRange:NSMakeRange(2, 1)]];
+    }
+    if([cleanString length] == 6)
+        cleanString = [cleanString stringByAppendingString:@"ff"];
+    
+    unsigned int baseValue;
+    [[NSScanner scannerWithString:cleanString] scanHexInt:&baseValue];
+    
+    float red = ((baseValue >> 24) & 0xFF)/255.0f;
+    float green = ((baseValue >> 16) & 0xFF)/255.0f;
+    float blue = ((baseValue >> 8) & 0xFF)/255.0f;
+    float alpha = ((baseValue >> 0) & 0xFF)/255.0f;
+    
+    return [UIColor colorWithRed:red green:green blue:blue alpha:alpha];
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
