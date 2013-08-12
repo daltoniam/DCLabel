@@ -45,6 +45,7 @@
     NSMutableArray* viewItems;
     int viewTag;
 }
+@property(nonatomic,copy)NSAttributedString* attributedText; //for iOS 5
 
 @property(nonatomic,assign)id<DCLabelDelegate>delegate;
 

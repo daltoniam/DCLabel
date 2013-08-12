@@ -53,10 +53,10 @@
 //set text color with a range
 -(void)setTextColor:(UIColor*)color range:(NSRange)range
 {
-    [self removeAttribute:NSForegroundColorAttributeName range:range];
-    [self addAttribute:NSForegroundColorAttributeName value:color range:range];
-	//[self removeAttribute:(NSString*)kCTForegroundColorAttributeName range:range]; // remove then add for apple leak.
-	//[self addAttribute:(NSString*)kCTForegroundColorAttributeName value:(id)color.CGColor range:range];
+    //[self removeAttribute:NSForegroundColorAttributeName range:range];
+    //[self addAttribute:NSForegroundColorAttributeName value:color range:range];
+	[self removeAttribute:(NSString*)kCTForegroundColorAttributeName range:range]; // remove then add for apple leak.
+	[self addAttribute:(NSString*)kCTForegroundColorAttributeName value:(id)color.CGColor range:range];
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //set text underlined

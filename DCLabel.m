@@ -14,7 +14,10 @@
 
 #define LONG_PRESS_THRESHOLD 0.75
 
-@synthesize delegate,textShadowBlur,textShadowColor,textShadowOffset;
+//when we drop ios 5 support we will need to change
+//kCTForegroundColorAttributeName for this: NSForegroundColorAttributeName
+
+@synthesize delegate,textShadowBlur,textShadowColor,textShadowOffset,attributedText;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 - (id)initWithFrame:(CGRect)frame
 {
@@ -103,7 +106,7 @@
                     if([list boolValue])
                     {
                         int pad = floorf(width/1.5);
-                        UIColor* color = [attributes objectForKey:NSForegroundColorAttributeName];
+                        UIColor* color = [attributes objectForKey:(id)kCTForegroundColorAttributeName];
                         if(!color)
                             color = [UIColor blackColor];
                         CGContextSaveGState(ctx);
@@ -118,7 +121,7 @@
                         CGFloat fontSize = CTFontGetSize(font);
                         NSString *fontName = (__bridge NSString *)CTFontCopyName(font, kCTFontPostScriptNameKey);
                         //int pad = floorf(width/1.7);
-                        UIColor* color = [attributes objectForKey:NSForegroundColorAttributeName];
+                        UIColor* color = [attributes objectForKey:(id)kCTForegroundColorAttributeName];
                         if(!color)
                             color = [UIColor blackColor];
                         CGContextSaveGState(ctx);
@@ -318,13 +321,17 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 -(void)setAttributedText:(NSAttributedString *)text
 {
+    if (attributedText == text)
+        return;
     if(textFrame)
         CFRelease(textFrame);
     textFrame = NULL;
     for(ViewItem* item in viewItems)
         [item.subView removeFromSuperview];
     [viewItems removeAllObjects];
-    [super setAttributedText:text];
+    attributedText = [text copy];
+    [self setNeedsDisplay];
+    //[super setAttributedText:text];
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 -(void)setText:(NSString *)text
