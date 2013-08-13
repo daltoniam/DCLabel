@@ -536,11 +536,9 @@
 +(DCParseEngine*)engineWithMDParser
 {
     DCParseEngine* engine = [[DCParseEngine alloc] init];
-    [engine addPattern:@"***" close:@"***" attributes:@[DC_ITALIC_TEXT,DC_BOLD_TEXT]];
     [engine addPattern:@"**" close:@"**" attributes:@[DC_BOLD_TEXT]];
-    [engine addPattern:@"*" close:@"*" attributes:@[DC_ITALIC_TEXT]];
-    [engine addPattern:@"___" close:@"___" attributes:@[DC_ITALIC_TEXT,DC_BOLD_TEXT]];
     [engine addPattern:@"__" close:@"__" attributes:@[DC_BOLD_TEXT]];
+    [engine addPattern:@"*" close:@"*" attributes:@[DC_ITALIC_TEXT]];
     [engine addPattern:@"_" close:@"_" attributes:@[DC_ITALIC_TEXT]];
     [engine addPattern:@"![" close:@"](?)" block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
         NSString* link = [closeTag substringWithRange:NSMakeRange(2, closeTag.length-3)];
