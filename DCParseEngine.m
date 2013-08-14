@@ -437,13 +437,19 @@
     }];
     [engine addPattern:@"<img?>" close:@"</img>" block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
         NSMutableDictionary* dict = [DCParseEngine processAttributes:openTag];
-        [dict setObject:dict[@"img"] forKey:DC_IMAGE_LINK];
-        return @[dict];
+        if(dict[@"src"])
+            [dict setObject:dict[@"src"] forKey:DC_IMAGE_LINK];
+        if(dict)
+            return @[dict];
+        return nil;
     }];
     [engine addPattern:@"<img?/>" close:@" " block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
         NSMutableDictionary* dict = [DCParseEngine processAttributes:openTag];
-        [dict setObject:dict[@"img"] forKey:DC_IMAGE_LINK];
-        return @[dict];
+        if(dict[@"src"])
+            [dict setObject:dict[@"src"] forKey:DC_IMAGE_LINK];
+        if(dict)
+            return @[dict];
+        return nil;
     }];
     [engine addPattern:@"<p>" close:@"</p>" attributes:nil];
     [engine addPattern:@"<ol>" close:@"</ol>" attributes:@[@{DC_HTML_ORDER_LIST: [NSNumber numberWithBool:YES]}]];
@@ -568,8 +574,19 @@
 +(NSMutableDictionary*)processAttributes:(NSString*)string
 {
     NSArray* attrArray = [string componentsSeparatedByString:@" "];
+    if([attrArray lastObject])
+    {
+        NSString* val = [attrArray lastObject];
+        if([val hasSuffix:@">"])
+        {
+            val = [val substringToIndex:val.length-1];
+            NSMutableArray* array = [NSMutableArray arrayWithArray:attrArray];
+            [array replaceObjectAtIndex:array.count-1 withObject:val];
+            attrArray = array;
+        }
+    }
     NSMutableArray* collect = [NSMutableArray arrayWithCapacity:attrArray.count];
-    for(int i = 0; i < attrArray.count; i++)
+    for(int i = 1; i < attrArray.count; i++)
     {
         NSString* string = [attrArray objectAtIndex:i];
         if(([string rangeOfString:@"="].location == NSNotFound || [string isEqualToString:@"="]) && collect.count > 0)
