@@ -436,22 +436,14 @@
         return @[[UIColor colorWithRed:0 green:0 blue:238.0f/255.0f alpha:1],@{DC_LINK_TEXT: link}];
     }];
     [engine addPattern:@"<img?>" close:@"</img>" block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
-        //NSString* link = [closeTag substringWithRange:NSMakeRange(2, closeTag.length-3)];
-        //return @[@{DC_IMAGE_LINK: link}];
-        NSLog(@"main img openTag: %@",openTag);
-        /*NSRange find = [openTag rangeOfString:@"src="];
-        if(find.location != NSNotFound)
-        {
-            
-        }
-        NSString* link = [openTag ]*/
-        return nil;
+        NSMutableDictionary* dict = [DCParseEngine processAttributes:openTag];
+        [dict setObject:dict[@"img"] forKey:DC_IMAGE_LINK];
+        return @[dict];
     }];
     [engine addPattern:@"<img?/>" close:@" " block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
-        //NSString* link = [closeTag substringWithRange:NSMakeRange(2, closeTag.length-3)];
-        //return @[@{DC_IMAGE_LINK: link}];
-        NSLog(@"single img openTag: %@",openTag);
-        return nil;
+        NSMutableDictionary* dict = [DCParseEngine processAttributes:openTag];
+        [dict setObject:dict[@"img"] forKey:DC_IMAGE_LINK];
+        return @[dict];
     }];
     [engine addPattern:@"<p>" close:@"</p>" attributes:nil];
     [engine addPattern:@"<ol>" close:@"</ol>" attributes:@[@{DC_HTML_ORDER_LIST: [NSNumber numberWithBool:YES]}]];
@@ -571,6 +563,57 @@
             tag = [tag substringFromIndex:1];
     }
     return engine;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
++(NSMutableDictionary*)processAttributes:(NSString*)string
+{
+    NSArray* attrArray = [string componentsSeparatedByString:@" "];
+    NSMutableArray* collect = [NSMutableArray arrayWithCapacity:attrArray.count];
+    for(int i = 0; i < attrArray.count; i++)
+    {
+        NSString* string = [attrArray objectAtIndex:i];
+        if(([string rangeOfString:@"="].location == NSNotFound || [string isEqualToString:@"="]) && collect.count > 0)
+        {
+            NSString* last = [collect lastObject];
+            if([last characterAtIndex:last.length-1] == '\'' || [last characterAtIndex:last.length-1] == '\"')
+                [collect addObject:string];
+            else
+            {
+                last = [last stringByAppendingFormat:@" %@",string];
+                [collect removeLastObject];
+                [collect addObject:last];
+            }
+        }
+        else
+            [collect addObject:string];
+    }
+    if(collect.count > 0)
+    {
+        NSMutableDictionary* dict = [NSMutableDictionary dictionaryWithCapacity:attrArray.count];
+        for(NSString* attr in collect)
+        {
+            NSRange split = [attr rangeOfString:@"="];
+            if(split.location != NSNotFound)
+            {
+                NSString* value = [attr substringWithRange:NSMakeRange(split.location+1, attr.length-(split.location+1))];
+                value = [value stringByReplacingOccurrencesOfString:@"\"" withString:@""];
+                value = [value stringByReplacingOccurrencesOfString:@"'" withString:@""];
+                NSString* key = [attr substringWithRange:NSMakeRange(0, split.location)];
+                if(key.length > 0)
+                {
+                    key = [key stringByReplacingOccurrencesOfString:@"\"" withString:@""];
+                    key = [key stringByReplacingOccurrencesOfString:@"'" withString:@""];
+                    /*if(key.length > 1 && [key characterAtIndex:key.length-1] == '/')
+                     key = [key substringToIndex:key.length-1];
+                     if(value.length > 1 && [value characterAtIndex:value.length-1] == '/')
+                     value = [value substringToIndex:key.length-1];*/
+                    [dict setObject:value forKey:key];
+                }
+            }
+        }
+        return dict;
+    }
+    return nil;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 +(NSString*)trimWhiteSpace:(NSString*)string

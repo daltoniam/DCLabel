@@ -55,4 +55,7 @@ typedef NSArray* (^DCPatternBlock)(NSString* openTag,NSString* closeTag,NSString
 //the default font you want. Default is system size 17
 @property(nonatomic,assign)UIFont* font;
 
+//used for creating changing html attributes into dictionary object (for img tags)
++(NSMutableDictionary*)processAttributes:(NSString*)string;
+
 @end
