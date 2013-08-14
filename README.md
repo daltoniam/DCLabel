@@ -5,75 +5,75 @@ DCLabel extends UILabel attributedText property to make embedding images/video c
 # Example #
 
 Convert this:
-'''objective-c
+```objective-c
 	@"hello **world**! This is an _example_ of what this can do!\nNow for a markdown list:\n 1. First\n 1. Second\n 1. Third\nHere is [Google](http://www.google.com/). Now an image:\n![](http://imgs.xkcd.com/comics/subways.png)\nThe possiblities are endless!"
-'''
+```
 
 
 into this:
 
-![](https://github.com/daltoniam/DCLabel/raw/screenshots/img/screenshot.png)
+![](https://github.com/daltoniam/DCLabel/raw/screenshot/img/screenshot.png)
 
-'''objective-c
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	- (void)viewDidLoad
-	{
-	    [super viewDidLoad];
-	    NSString* text = @"hello **world**! This is an _example_ of what this can do!\nNow for a markdown list:\n 1. First\n 1. Second\n 1. Third\nHere is [Google](http://www.google.com/). Now an image:\n![](http://imgs.xkcd.com/comics/subways.png)\nThe possiblities are endless!";
-	    DCParseEngine* engine = [DCParseEngine engineWithMDParser];
-	    int pad = 6;
-	    DCLabel* label = [[DCLabel alloc] initWithFrame:CGRectMake(pad, pad, self.view.frame.size.width-(pad*2), self.view.frame.size.height-(pad*2))];
-	    label.delegate = self;
-	    label.userInteractionEnabled = YES;
-	    engine.embedWidth = label.frame.size.width;
-	    engine.embedHeight = engine.embedWidth;
-	    label.attributedText = [engine parse:text];
-	    [self.view addSubview:label];
-	}
-	//DCLabel delegate methods
-	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+```objective-c
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    NSString* text = @"hello **world**! This is an _example_ of what this can do!\nNow for a markdown list:\n 1. First\n 1. Second\n 1. Third\nHere is [Google](http://www.google.com/). Now an image:\n![](http://imgs.xkcd.com/comics/subways.png)\nThe possiblities are endless!";
+    DCParseEngine* engine = [DCParseEngine engineWithMDParser];
+    int pad = 6;
+    DCLabel* label = [[DCLabel alloc] initWithFrame:CGRectMake(pad, pad, self.view.frame.size.width-(pad*2), self.view.frame.size.height-(pad*2))];
+    label.delegate = self;
+    label.userInteractionEnabled = YES;
+    engine.embedWidth = label.frame.size.width;
+    engine.embedHeight = engine.embedWidth;
+    label.attributedText = [engine parse:text];
+    [self.view addSubview:label];
+}
+//DCLabel delegate methods
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	-(UIView*)imageWillLoad:(NSString*)imgURL attributes:(NSDictionary*)attributes
-	{
-		//this can be your favorite network image viewer, does not have to be DCImageView 
-	    DCImageView* imgView = [[DCImageView alloc] init];
-	    imgView.URL = imgURL;
-	    [imgView start];
-	    return imgView;
-	}
-	- (void)didSelectLink:(NSString*)link
-	{
-	    NSLog(@"open a webview or a custom view of your choosing");
-	}
+-(UIView*)imageWillLoad:(NSString*)imgURL attributes:(NSDictionary*)attributes
+{
+	//this can be your favorite network image viewer, does not have to be DCImageView 
+    DCImageView* imgView = [[DCImageView alloc] init];
+    imgView.URL = imgURL;
+    [imgView start];
+    return imgView;
+}
+- (void)didSelectLink:(NSString*)link
+{
+    NSLog(@"open a webview or a custom view of your choosing");
+}
 
-	- (void)didLongPressLink:(NSString*)link frame:(CGRect)frame
-	{
-	    NSLog(@"open an action of options (save,copy,open,etc)");
-	}
+- (void)didLongPressLink:(NSString*)link frame:(CGRect)frame
+{
+    NSLog(@"open an action of options (save,copy,open,etc)");
+}
 
-	- (void)didSelectImage:(NSString*)imageURL
-	{
-	    NSLog(@"open a imageViewer or a custom view of your choosing");
-	}
+- (void)didSelectImage:(NSString*)imageURL
+{
+    NSLog(@"open a imageViewer or a custom view of your choosing");
+}
 
-	- (void)didLongPressImage:(NSString*)imageURL
-	{
-	    NSLog(@"open an action of options (save,copy,open,etc)");
-	}
-'''
+- (void)didLongPressImage:(NSString*)imageURL
+{
+    NSLog(@"open an action of options (save,copy,open,etc)");
+}
+```
 
 The engine can also be customized to support your own tags like so:
-'''objective-c
-	DCParseEngine* engine = [[DCParseEngine alloc] init];
-	[engine addPattern:@"**" close:@"**" attributes:@[DC_BOLD_TEXT]];
-	    [engine addPattern:@"__" close:@"__" attributes:@[DC_BOLD_TEXT]];
-	    [engine addPattern:@"*" close:@"*" attributes:@[DC_ITALIC_TEXT]];
-	    [engine addPattern:@"_" close:@"_" attributes:@[DC_ITALIC_TEXT]];
-	    [engine addPattern:@"![" close:@"](?)" block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
-	        NSString* link = [closeTag substringWithRange:NSMakeRange(2, closeTag.length-3)];
-	        return @[@{DC_IMAGE_LINK: link}];
-	    }];
-'''
+```objective-c
+DCParseEngine* engine = [[DCParseEngine alloc] init];
+[engine addPattern:@"**" close:@"**" attributes:@[DC_BOLD_TEXT]];
+    [engine addPattern:@"__" close:@"__" attributes:@[DC_BOLD_TEXT]];
+    [engine addPattern:@"*" close:@"*" attributes:@[DC_ITALIC_TEXT]];
+    [engine addPattern:@"_" close:@"_" attributes:@[DC_ITALIC_TEXT]];
+    [engine addPattern:@"![" close:@"](?)" block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
+        NSString* link = [closeTag substringWithRange:NSMakeRange(2, closeTag.length-3)];
+        return @[@{DC_IMAGE_LINK: link}];
+    }];
+```
 	
 # Notes #
 
