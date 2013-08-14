@@ -36,7 +36,7 @@ typedef NSArray* (^DCPatternBlock)(NSString* openTag,NSString* closeTag,NSString
 //remove a pattern from the parser. Must be an exact match.
 -(void)removePattern:(NSString*)openTag close:(NSString*)closeTag;
 
-//'promote'a pattern to be first in the processing index.
+//'promote' a pattern to be first in the processing index.
 -(void)promotePattern:(NSString*)openTag close:(NSString*)closeTag;
 
 //start the parsing of string.
