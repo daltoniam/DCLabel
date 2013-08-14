@@ -6,7 +6,8 @@ DCLabel extends UILabel attributedText property to make embedding images/video c
 
 Convert this:
 ```objective-c
-	@"hello **world**! This is an _example_ of what this can do!\nNow for a markdown list:\n 1. First\n 1. Second\n 1. Third\nHere is [Google](http://www.google.com/). Now an image:\n![](http://imgs.xkcd.com/comics/subways.png)\nThe possiblities are endless!"
+	@"hello **world**! This is an _example_ of what this can do!\nNow for a markdown list:\n 1. First\n 1. Second\n 1. Third\n \
+	Here is [Google](http://www.google.com/). Now an image:\n![](http://imgs.xkcd.com/comics/subways.png)\nThe possiblities are endless!"
 ```
 
 
@@ -15,11 +16,12 @@ into this:
 ![](https://github.com/daltoniam/DCLabel/raw/screenshot/img/screenshot.png)
 
 ```objective-c
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
 - (void)viewDidLoad
 {
     [super viewDidLoad];
-    NSString* text = @"hello **world**! This is an _example_ of what this can do!\nNow for a markdown list:\n 1. First\n 1. Second\n 1. Third\nHere is [Google](http://www.google.com/). Now an image:\n![](http://imgs.xkcd.com/comics/subways.png)\nThe possiblities are endless!";
+    NSString* text = @"hello **world**! This is an _example_ of what this can do!\nNow for a markdown list:\n 1. First\n 1. Second\n 1. Third\n \
+    Here is [Google](http://www.google.com/). Now an image:\n![](http://imgs.xkcd.com/comics/subways.png)\nThe possiblities are endless!";
     DCParseEngine* engine = [DCParseEngine engineWithMDParser];
     int pad = 6;
     DCLabel* label = [[DCLabel alloc] initWithFrame:CGRectMake(pad, pad, self.view.frame.size.width-(pad*2), self.view.frame.size.height-(pad*2))];
@@ -31,7 +33,7 @@ into this:
     [self.view addSubview:label];
 }
 //DCLabel delegate methods
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
 
 -(UIView*)imageWillLoad:(NSString*)imgURL attributes:(NSDictionary*)attributes
 {
@@ -66,13 +68,13 @@ The engine can also be customized to support your own tags like so:
 ```objective-c
 DCParseEngine* engine = [[DCParseEngine alloc] init];
 [engine addPattern:@"**" close:@"**" attributes:@[DC_BOLD_TEXT]];
-    [engine addPattern:@"__" close:@"__" attributes:@[DC_BOLD_TEXT]];
-    [engine addPattern:@"*" close:@"*" attributes:@[DC_ITALIC_TEXT]];
-    [engine addPattern:@"_" close:@"_" attributes:@[DC_ITALIC_TEXT]];
-    [engine addPattern:@"![" close:@"](?)" block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
-        NSString* link = [closeTag substringWithRange:NSMakeRange(2, closeTag.length-3)];
-        return @[@{DC_IMAGE_LINK: link}];
-    }];
+[engine addPattern:@"__" close:@"__" attributes:@[DC_BOLD_TEXT]];
+[engine addPattern:@"*" close:@"*" attributes:@[DC_ITALIC_TEXT]];
+[engine addPattern:@"_" close:@"_" attributes:@[DC_ITALIC_TEXT]];
+[engine addPattern:@"![" close:@"](?)" block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
+    NSString* link = [closeTag substringWithRange:NSMakeRange(2, closeTag.length-3)];
+    return @[@{DC_IMAGE_LINK: link}];
+}];
 ```
 	
 # Notes #
@@ -81,7 +83,32 @@ The ? character in the parsing engine is used as a wildcard. Currently only one 
 
 # Docs #
 
+## DCLabel ##
 
+This three properties add shadow to the text. All three of this methods work the same as the view.layer you get from quartz.
+-  ```objective-c @property(nonatomic,strong)UIColor* textShadowColor;``` 
+
+Set the shadow color. 
+-  ```objective-c @property(nonatomic,assign)CGSize textShadowOffset;``` 
+
+Set the offset of the shadow.
+-  ```objective-c @property(nonatomic,assign)NSInteger textShadowBlur;``` 
+
+Set the blur of the shadow.
+
+- ```objective-c+(CGFloat)suggestedHeight:(NSAttributedString*)attributedText width:(int)width;``` 
+
+returns the suggested height for the label based on the text and the width. This is very useful in determinting a TableViewCell/ScrollView height before drawing the label and adding it into the view hierarchy 
+
+## DCLabel delegate Methods ##
+
+-  ```objective-c - (void)didSelectLink:(NSString*)link;```
+-  ```objective-c - (void)didLongPressLink:(NSString*)link frame:(CGRect)frame;```
+-  ```objective-c - (void)didSelectImage:(NSString*)imageURL;```
+-  ```objective-c - (void)didLongPressImage:(NSString*)imageURL;```
+
+//return your imageView that loads the imgURL
+-(UIView*)imageWillLoad:(NSString*)imgURL attributes:(NSDictionary*)attributes;
 
 # Requirements #
 
