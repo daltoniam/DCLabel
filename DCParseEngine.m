@@ -620,10 +620,6 @@
                 {
                     key = [key stringByReplacingOccurrencesOfString:@"\"" withString:@""];
                     key = [key stringByReplacingOccurrencesOfString:@"'" withString:@""];
-                    /*if(key.length > 1 && [key characterAtIndex:key.length-1] == '/')
-                     key = [key substringToIndex:key.length-1];
-                     if(value.length > 1 && [value characterAtIndex:value.length-1] == '/')
-                     value = [value substringToIndex:key.length-1];*/
                     [dict setObject:value forKey:key];
                 }
             }
