@@ -47,7 +47,7 @@
 }
 @property(nonatomic,copy)NSAttributedString* attributedText; //for iOS 5
 
-@property(nonatomic,assign)id<DCLabelDelegate>delegate;
+@property(nonatomic,weak)id<DCLabelDelegate>delegate;
 
 //text shadow properties
 @property(nonatomic,strong)UIColor* textShadowColor;
