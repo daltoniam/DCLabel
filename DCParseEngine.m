@@ -115,6 +115,8 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 -(NSAttributedString*)parse:(NSString*)string
 {
+    if(!string)
+        return nil;
     NSString* endString = [NSString stringWithString:string];
     int offset = 0;
     NSMutableArray* currentRanges = [NSMutableArray array];
