@@ -82,7 +82,7 @@
             }
             CTFrameDraw(textFrame, ctx);
             CFArrayRef leftLines = CTFrameGetLines(textFrame); //textFrame
-            int lineCount = [(__bridge NSArray *)leftLines count];
+            NSInteger lineCount = [(__bridge NSArray *)leftLines count];
             CGPoint *origins = malloc(sizeof(CGPoint)*lineCount);
             CTFrameGetLineOrigins(textFrame,CFRangeMake(0, 0), origins);
             NSInteger lineIndex = 0;

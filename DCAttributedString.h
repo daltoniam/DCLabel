@@ -47,10 +47,10 @@ static NSString* const DC_ORDERED_LIST = @"DCOrderedList";
 -(void)setTextSize:(CGFloat)size;
 -(void)setTextSize:(CGFloat)size range:(NSRange)range;
 
--(void)addImage:(NSString*)link height:(float)height width:(float)width index:(int)index attributes:(NSDictionary*)attrs;
+-(void)addImage:(NSString*)link height:(float)height width:(float)width index:(NSInteger)index attributes:(NSDictionary*)attrs;
 
 //add unorder list to the string
--(void)setUnOrderedList:(int)index;
--(void)setOrderedList:(int)index number:(int)number;
+-(void)setUnOrderedList:(NSInteger)index;
+-(void)setOrderedList:(NSInteger)index number:(NSInteger)number;
 
 @end

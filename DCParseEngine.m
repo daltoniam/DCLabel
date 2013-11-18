@@ -29,8 +29,8 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 @interface DCStyleRange : NSObject
 
-@property(nonatomic,assign)int start;
-@property(nonatomic,assign)int end;
+@property(nonatomic,assign)NSInteger start;
+@property(nonatomic,assign)NSInteger end;
 @property(nonatomic,assign)NSArray* attribs;
 @property(nonatomic,assign)NSString* closeTag;
 @property(nonatomic,strong)NSString* openTag;
@@ -166,7 +166,7 @@
                     if(!range.keepClose)
                     {
                         //NSLog(@"i %d end: %d length: %d",i,(i-offset)+range.closeTag.length,endString.length);
-                        int len = (i-offset)+range.closeTag.length;
+                        NSInteger len = (i-offset)+range.closeTag.length;
                         if(len <= endString.length)
                         {
                             endString = [endString stringByReplacingCharactersInRange:NSMakeRange(i-offset, range.closeTag.length) withString:@""];
@@ -383,8 +383,8 @@
         {
             unichar end = [tagName characterAtIndex:range.location+1];
             NSString* last = [tagName substringFromIndex:range.location+1];
-            int start = index+range.location;
-            for(int i = start; i < string.length; i++)
+            NSInteger start = index+range.location;
+            for(NSInteger i = start; i < string.length; i++)
             {
                 if(end == [string characterAtIndex:i])
                 {
@@ -425,9 +425,9 @@
     [engine addPattern:@"<em>" close:@"</em>" attributes:@[DC_ITALIC_TEXT]];
     [engine addPattern:@"<a?>" close:@"</a>" block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
         NSRange range = [openTag rangeOfString:@"href="];
-        int start = range.location + range.length + 1;
+        NSInteger start = range.location + range.length + 1;
         range = [openTag rangeOfString:@" " options:0 range:NSMakeRange(start, openTag.length-start)];
-        int end = 0;
+        NSInteger end = 0;
         if(range.location != NSNotFound)
             end = range.location-2;
         else
@@ -463,7 +463,7 @@
         NSRange find = [openTag rangeOfString:@"font-size:"];
         if(find.location != NSNotFound)
         {
-            int pos = find.location+find.length;
+            NSInteger pos = find.location+find.length;
             NSRange end = [openTag rangeOfString:@";" options:0 range:NSMakeRange(pos, [openTag length]-pos)];
             if(end.location == NSNotFound)
                 end = [openTag rangeOfString:@"'" options:0 range:NSMakeRange(pos, [openTag length]-pos)];
@@ -478,7 +478,7 @@
         find = [openTag rangeOfString:@"text-decoration:"];
         if(find.location != NSNotFound)
         {
-            int pos = find.location+find.length;
+            NSInteger pos = find.location+find.length;
             if(pos != NSNotFound && openTag.length > pos)
             {
                 NSString* decorations = [openTag substringWithRange:NSMakeRange(pos, [openTag length]-pos)];
@@ -491,7 +491,7 @@
         find = [openTag rangeOfString:@"color:"];
         if(find.location != NSNotFound)
         {
-            int pos = find.location+find.length;
+            NSInteger pos = find.location+find.length;
             NSRange end = [openTag rangeOfString:@";" options:0 range:NSMakeRange(pos, [openTag length]-pos)];
             if(end.location == NSNotFound)
                 end = [openTag rangeOfString:@" " options:0 range:NSMakeRange(pos, [openTag length]-pos)];
