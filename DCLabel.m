@@ -22,10 +22,26 @@
 - (id)initWithFrame:(CGRect)frame
 {
     self = [super initWithFrame:frame];
-    if (self) {
-        viewItems = [NSMutableArray array];
+    if (self)
+    {
+        [self sharedInit];
     }
     return self;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+- (id)initWithCoder:(NSCoder *)aDecoder
+{
+    self = [super initWithCoder:aDecoder];
+    if (self)
+    {
+        [self sharedInit];
+    }
+    return self;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+- (void)sharedInit
+{
+    viewItems = [NSMutableArray array];
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 -(void)drawRect:(CGRect)rect
@@ -106,11 +122,11 @@
                     if([list boolValue])
                     {
                         int pad = floorf(width/1.5);
-                        UIColor* color = [attributes objectForKey:(id)kCTForegroundColorAttributeName];
+                        CGColorRef color = (__bridge CGColorRef)[attributes objectForKey:(id)kCTForegroundColorAttributeName];
                         if(!color)
-                            color = [UIColor blackColor];
+                            color = [UIColor blackColor].CGColor;
                         CGContextSaveGState(ctx);
-                        CGContextSetFillColorWithColor(ctx,color.CGColor);
+                        CGContextSetFillColorWithColor(ctx,color); //CGColor
                         CGContextFillEllipseInRect(ctx, CGRectMake(xOffset+(pad/4), origins[lineIndex].y+1.5, width-pad, height-pad));
                         CGContextRestoreGState(ctx);
                     }

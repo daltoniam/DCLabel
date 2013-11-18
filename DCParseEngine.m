@@ -115,6 +115,8 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 -(NSAttributedString*)parse:(NSString*)string
 {
+    if(!string)
+        return nil;
     NSString* endString = [NSString stringWithString:string];
     int offset = 0;
     NSMutableArray* currentRanges = [NSMutableArray array];
@@ -424,16 +426,11 @@
     [engine addPattern:@"<i>" close:@"</i>" attributes:@[DC_ITALIC_TEXT]];
     [engine addPattern:@"<em>" close:@"</em>" attributes:@[DC_ITALIC_TEXT]];
     [engine addPattern:@"<a?>" close:@"</a>" block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
-        NSRange range = [openTag rangeOfString:@"href="];
-        NSInteger start = range.location + range.length + 1;
-        range = [openTag rangeOfString:@" " options:0 range:NSMakeRange(start, openTag.length-start)];
-        NSInteger end = 0;
-        if(range.location != NSNotFound)
-            end = range.location-2;
-        else
-            end = openTag.length-2;
-        NSString* link = [openTag substringWithRange:NSMakeRange(start, end-start)];
-        return @[[UIColor colorWithRed:0 green:0 blue:238.0f/255.0f alpha:1],@{DC_LINK_TEXT: link}];
+        NSMutableDictionary* dict = [DCParseEngine processAttributes:openTag];
+        NSString* link = dict[@"href"];
+        if(link)
+            return @[[UIColor colorWithRed:0 green:0 blue:238.0f/255.0f alpha:1],@{DC_LINK_TEXT: link}];
+        return nil;
     }];
     [engine addPattern:@"<img?>" close:@"</img>" block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
         NSMutableDictionary* dict = [DCParseEngine processAttributes:openTag];
@@ -620,10 +617,6 @@
                 {
                     key = [key stringByReplacingOccurrencesOfString:@"\"" withString:@""];
                     key = [key stringByReplacingOccurrencesOfString:@"'" withString:@""];
-                    /*if(key.length > 1 && [key characterAtIndex:key.length-1] == '/')
-                     key = [key substringToIndex:key.length-1];
-                     if(value.length > 1 && [value characterAtIndex:value.length-1] == '/')
-                     value = [value substringToIndex:key.length-1];*/
                     [dict setObject:value forKey:key];
                 }
             }
