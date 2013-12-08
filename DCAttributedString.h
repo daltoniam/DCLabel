@@ -9,6 +9,12 @@
 
 #import <Foundation/Foundation.h>
 
+#if TARGET_OS_IPHONE
+#else
+typedef NSColor UIColor;
+typedef NSFont UIFont;
+#endif
+
 static NSString* const DC_BOLD_TEXT = @"DCBold";
 static NSString* const DC_ITALIC_TEXT = @"DCItalic";
 static NSString* const DC_UNDERLINE_TEXT = @"DCUnderline";

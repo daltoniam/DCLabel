@@ -21,6 +21,7 @@
 @property(nonatomic,assign)DCPatternBlock callback;
 @property(nonatomic,assign)BOOL keepOpen;
 @property(nonatomic,assign)BOOL keepClose;
+@property(nonatomic,assign)BOOL isWord;
 
 +(DCParsePattern*)patternWithTag:(NSString*)open close:(NSString*)close attribs:(NSArray*)attrs;
 +(DCParsePattern*)patternWithTag:(NSString*)open close:(NSString*)close callback:(DCPatternBlock)block;
@@ -37,6 +38,7 @@
 @property(nonatomic,assign)DCPatternBlock block;
 @property(nonatomic,assign)BOOL keepOpen;
 @property(nonatomic,assign)BOOL keepClose;
+@property(nonatomic,assign)BOOL isWord;
 
 
 @end
@@ -68,22 +70,46 @@
     [self addPattern:openTag close:closeTag keepOpen:NO keepClose:NO block:callback];
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//this is used when the attributes for a tag match will be known ahead of time. (e.g: hello *world* '*' bolds the text)
+-(void)addPattern:(NSString*)openTag close:(NSString*)closeTag isWord:(BOOL)isWord attributes:(NSArray*)attribs
+{
+    [self addPattern:openTag close:closeTag attributes:attribs keepOpen:NO keepClose:NO isWord:YES];
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+-(void)addPattern:(NSString*)openTag close:(NSString*)closeTag isWord:(BOOL)isWord block:(DCPatternBlock)callback
+{
+    [self addPattern:openTag close:closeTag keepOpen:NO keepClose:NO isWord:isWord block:callback];
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 -(void)addPattern:(NSString*)openTag close:(NSString*)closeTag attributes:(NSArray*)attribs keepOpen:(BOOL)open keepClose:(BOOL)close
+{
+    [self addPattern:openTag close:closeTag attributes:attribs keepOpen:open keepClose:close isWord:NO];
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+-(void)addPattern:(NSString*)openTag close:(NSString*)closeTag keepOpen:(BOOL)open keepClose:(BOOL)close block:(DCPatternBlock)callback
+{
+    [self addPattern:openTag close:closeTag keepOpen:open keepClose:close isWord:NO block:callback];
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//this is used when the attributes for a tag match will be known ahead of time. (e.g: hello *world* '*' bolds the text)
+-(void)addPattern:(NSString*)openTag close:(NSString*)closeTag attributes:(NSArray*)attribs
+         keepOpen:(BOOL)open keepClose:(BOOL)close isWord:(BOOL)isWord
 {
     [self purgePatterns:openTag close:closeTag];
     DCParsePattern* pattern = [DCParsePattern patternWithTag:openTag close:closeTag attribs:attribs];
     pattern.keepOpen = open;
     pattern.keepClose = close;
+    pattern.isWord = isWord;
     [patterns addObject:pattern];
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
--(void)addPattern:(NSString*)openTag close:(NSString*)closeTag keepOpen:(BOOL)open keepClose:(BOOL)close block:(DCPatternBlock)callback
+-(void)addPattern:(NSString*)openTag close:(NSString*)closeTag
+         keepOpen:(BOOL)open keepClose:(BOOL)close isWord:(BOOL)isWord block:(DCPatternBlock)callback
 {
     [self purgePatterns:openTag close:closeTag];
     DCParsePattern* pattern = [DCParsePattern patternWithTag:openTag close:closeTag callback:callback];
     pattern.keepOpen = open;
     pattern.keepClose = close;
+    pattern.isWord = isWord;
     [patterns addObject:pattern];
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -119,6 +145,20 @@
                     isTag = [self processTag:range.closeTag updateTag:&uTag string:string index:i];
                 if(uTag)
                     range.closeTag = uTag;
+                if(range.isWord)
+                {
+                    isTag = NO;
+                    if(i == string.length-1)
+                        isTag = YES;
+                    else if(i < string.length-1)
+                    {
+                        unichar currentChar = [string characterAtIndex:i+1];
+                        if(isspace(currentChar) || currentChar == '\n')
+                            isTag = YES;
+                    }
+    
+                }
+                    
                 if(isTag)
                 {
                     int totalChange = 0;
@@ -246,19 +286,21 @@
     //NSLog(@"endString: %@",endString);
     int numIndex = 0;
     int embedOffset = 0; //when a view is embed, we the end ranges of links get messed up
+    int imgOffset = 0;
     NSMutableAttributedString* attribString = [[NSMutableAttributedString alloc] initWithString:endString attributes:nil];
     [attribString setFont:[UIFont systemFontOfSize:15]];
     for(DCStyleRange* range in collectRanges)
     {
-        if(range.start != NSNotFound && range.start > -1 && range.start+range.end <= endString.length && range.end != NSNotFound)
+        if(range.start != NSNotFound && range.start > -1 && range.start+range.end <= endString.length && range.end != NSNotFound && range.end != 0)
         {
+            range.start -= imgOffset;
             NSRange rangeLoc = NSMakeRange(range.start, range.end);
             NSArray* array = range.attribs;
             if(!array && range.block)
                 array = range.block(range.openTag,range.closeTag,[endString substringWithRange:rangeLoc]);
             if(array)
             {
-                range.start += embedOffset;
+                //range.start += embedOffset;
                 //range.end += embedOffset;
                 rangeLoc.location += embedOffset;
                 for(id object in array)
@@ -266,7 +308,7 @@
                     if([object isKindOfClass:[NSString class]])
                     {
                         NSRange rangeText = rangeLoc;
-                        rangeText.location -= embedOffset;   
+                        //rangeText.location += embedOffset;
                         NSString* style = object;
                         if(rangeText.location == 0 && rangeText.length == 0)
                             continue;
@@ -307,7 +349,15 @@
                                     h = self.embedHeight;
                                 if(w <= 0)
                                     w = self.embedWidth;
+                                while(w > self.embedWidth)
+                                {
+                                    w -= w/8;
+                                    h -= h/8;
+                                }
+                                [attribString deleteCharactersInRange:rangeLoc];
+                                imgOffset += rangeLoc.length;
                                 [attribString addImage:value height:h width:w index:range.start attributes:object];
+                                rangeLoc = NSMakeRange(range.start, 1);
                                 embedOffset++;
                             }
                             else if([key isEqualToString:DC_LINK_TEXT])
@@ -330,6 +380,7 @@
     NSString* check = [string substringWithRange:NSMakeRange(index, tagName.length)];
     if([tagName isEqualToString:check])
         return YES;
+    
     //NSLog(@"tagName: %@",tagName);
     NSRange range = [tagName rangeOfString:@"?"];
     if(range.location != NSNotFound)
@@ -379,6 +430,7 @@
     range.block = pattern.callback;
     range.keepOpen = pattern.keepOpen;
     range.keepClose = pattern.keepClose;
+    range.isWord = pattern.isWord;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //factory methods

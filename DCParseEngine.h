@@ -23,11 +23,25 @@ typedef NSArray* (^DCPatternBlock)(NSString* openTag,NSString* closeTag,NSString
 //add a pattern with this attributes to style the string. Uses a block for a callback for styling that comes from the tags content
 -(void)addPattern:(NSString*)openTag close:(NSString*)closeTag block:(DCPatternBlock)callback;
 
+//does the same as above, but can specific if it must be a word.
+-(void)addPattern:(NSString*)openTag close:(NSString*)closeTag isWord:(BOOL)isWord attributes:(NSArray*)attribs;
+
+//does the same as above, but can specific if it must be a word.
+-(void)addPattern:(NSString*)openTag close:(NSString*)closeTag isWord:(BOOL)isWord block:(DCPatternBlock)callback;
+
 //does the same as above, but can specific if tags are removed or not
 -(void)addPattern:(NSString*)openTag close:(NSString*)closeTag attributes:(NSArray*)attribs keepOpen:(BOOL)open keepClose:(BOOL)close;
 
 //does the same as above, but can specific if tags are removed or not
 -(void)addPattern:(NSString*)openTag close:(NSString*)closeTag keepOpen:(BOOL)open keepClose:(BOOL)close block:(DCPatternBlock)callback;
+
+//does the same as above, but can specific if it must be a word.
+-(void)addPattern:(NSString*)openTag close:(NSString*)closeTag attributes:(NSArray*)attribs
+         keepOpen:(BOOL)open keepClose:(BOOL)close isWord:(BOOL)isWord;
+
+//does the same as above, but can specific if it must be a word.
+-(void)addPattern:(NSString*)openTag close:(NSString*)closeTag
+         keepOpen:(BOOL)open keepClose:(BOOL)close isWord:(BOOL)isWord block:(DCPatternBlock)callback;
 
 //start the parsing of string.
 -(NSAttributedString*)parse:(NSString*)string;
