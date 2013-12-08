@@ -4,59 +4,111 @@ DCLabel extends UILabel attributedText property to make embedding images/video c
 
 # Example #
 
-	- (void)viewDidLoad
-	{
-	    [super viewDidLoad];
-	    int offset = 6;
-	    DCLabel* label = [[DCLabel alloc] initWithFrame:CGRectMake(offset, offset, self.view.frame.size.width-(offset*2), self.view.frame.size.height-(offset*2))];
-	    label.delegate = self;
-	    [self.view addSubview:label];
-		//HTML option
-	    //NSString* text = [NSString stringWithFormat:@"hello <b>World</b>! This is <i>really</i> cool! Here is <a href='http://www.google.com/'>Google</a>."];
-		//DCParseEngine* engine = [DCParseEngine engineWithHTMLParser];
-	    //label.attributedText = [engine parse:text];
-	    NSString* text = [NSString stringWithFormat:@"hello **World**! This is *really* cool! Here is [Google](http://www.google.com/). Now an image:\n![](http://imgs.xkcd.com/comics/subways.png)\nok now that is over:\n\n![](http://google.com)\n"];
-		DCParseEngine* engine = [DCParseEngine engineWithMDParser];
-	    engine.embedWidth = label.frame.size.width;
-	    label.attributedText = [engine parse:text];
-	    label.userInteractionEnabled = YES; //if you want to be able to tap hyperlinks or images
-    
-	    label.numberOfLines = 0; //allow the label text lines count to be unrestricted
-	    CGRect frame = label.frame;
-	    frame.size.height = [DCLabel suggestedHeight:label.attributedText width:frame.size.width];
-	    label.frame = frame;
-	}
-	
-	//delegate method
-	-(UIView*)imageWillLoad:(NSString*)imgURL attributes:(NSDictionary*)attributes
-	{
-		//this is using my network imageView DCImageView. Feel free to use your favorite one.
-		//you can find DCImageView here: https://github.com/daltoniam/DCImageView
-	    DCImageView* imgView = [[DCImageView alloc] init];
-	    imgView.showProgress = YES;
-	    //imgView.contentMode = UIViewContentModeCenter;
-	    imgView.URL = imgURL;
-	    [imgView start];
-	    return imgView;
-	}
-	
-The engine can also be customized to support your own tags like so:
+Convert this:
+```objective-c
+	@"hello **world**! This is an _example_ of what this can do!\nNow for a markdown list:\n 1. First\n 1. Second\n 1. Third\n \
+	Here is [Google](http://www.google.com/). Now an image:\n![](http://imgs.xkcd.com/comics/subways.png)\nThe possiblities are endless!"
+```
 
-	DCParseEngine* engine = [[DCParseEngine alloc] init];
-	[engine addPattern:@"***" close:@"***" attributes:[NSArray arrayWithObjects:DC_ITALIC_TEXT,DC_BOLD_TEXT, nil]];
-	[engine addPattern:@"**" close:@"**" attributes:[NSArray arrayWithObject:DC_BOLD_TEXT]];
-	[engine addPattern:@"*" close:@"*" attributes:[NSArray arrayWithObject:DC_ITALIC_TEXT]];
-	[engine addPattern:@"___" close:@"___" attributes:[NSArray arrayWithObjects:DC_ITALIC_TEXT,DC_BOLD_TEXT, nil]];
-	[engine addPattern:@"__" close:@"__" attributes:[NSArray arrayWithObject:DC_BOLD_TEXT]];
-	[engine addPattern:@"_" close:@"_" attributes:[NSArray arrayWithObject:DC_ITALIC_TEXT]];
-	[engine addPattern:@"![" close:@"](?)" block:^NSArray*(NSString* openTag,NSString* closeTag){
-	    NSString* link = [closeTag substringWithRange:NSMakeRange(2, closeTag.length-3)];
-	    return [NSArray arrayWithObjects:[NSDictionary dictionaryWithObject:link forKey:DC_IMAGE_LINK],nil];
-	}];
+
+into this:
+
+![](https://github.com/daltoniam/DCLabel/raw/screenshot/img/screenshot.png)
+
+```objective-c
+///////////////////////////////////////////////////////////////////////
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    NSString* text = @"hello **world**! This is an _example_ of what this can do!\nNow for a markdown list:\n 1. First\n 1. Second\n 1. Third\n \
+    Here is [Google](http://www.google.com/). Now an image:\n![](http://imgs.xkcd.com/comics/subways.png)\nThe possiblities are endless!";
+    DCParseEngine* engine = [DCParseEngine engineWithMDParser];
+    int pad = 6;
+    DCLabel* label = [[DCLabel alloc] initWithFrame:CGRectMake(pad, pad, self.view.frame.size.width-(pad*2), self.view.frame.size.height-(pad*2))];
+    label.delegate = self;
+    label.userInteractionEnabled = YES;
+    engine.embedWidth = label.frame.size.width;
+    engine.embedHeight = engine.embedWidth;
+    label.attributedText = [engine parse:text];
+    [self.view addSubview:label];
+}
+//DCLabel delegate methods
+///////////////////////////////////////////////////////////////////////
+
+-(UIView*)imageWillLoad:(NSString*)imgURL attributes:(NSDictionary*)attributes
+{
+	//this can be your favorite network image viewer, does not have to be DCImageView 
+    DCImageView* imgView = [[DCImageView alloc] init];
+    imgView.URL = imgURL;
+    [imgView start];
+    return imgView;
+}
+- (void)didSelectLink:(NSString*)link
+{
+    NSLog(@"open a webview or a custom view of your choosing");
+}
+
+- (void)didLongPressLink:(NSString*)link frame:(CGRect)frame
+{
+    NSLog(@"open an action of options (save,copy,open,etc)");
+}
+
+- (void)didSelectImage:(NSString*)imageURL
+{
+    NSLog(@"open a imageViewer or a custom view of your choosing");
+}
+
+- (void)didLongPressImage:(NSString*)imageURL
+{
+    NSLog(@"open an action of options (save,copy,open,etc)");
+}
+```
+
+The engine can also be customized to support your own tags like so:
+```objective-c
+DCParseEngine* engine = [[DCParseEngine alloc] init];
+[engine addPattern:@"**" close:@"**" attributes:@[DC_BOLD_TEXT]];
+[engine addPattern:@"__" close:@"__" attributes:@[DC_BOLD_TEXT]];
+[engine addPattern:@"*" close:@"*" attributes:@[DC_ITALIC_TEXT]];
+[engine addPattern:@"_" close:@"_" attributes:@[DC_ITALIC_TEXT]];
+[engine addPattern:@"![" close:@"](?)" block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
+    NSString* link = [closeTag substringWithRange:NSMakeRange(2, closeTag.length-3)];
+    return @[@{DC_IMAGE_LINK: link}];
+}];
+```
 	
 # Notes #
 
 The ? character in the parsing engine is used as a wildcard. Currently only one wildcard per tag (both open and close tag can have there own) is supported at this time.
+
+# Docs #
+
+## DCLabel ##
+
+This three properties add shadow to the text. All three of this methods work the same as the view.layer you get from quartz.
+-  ```objective-c @property(nonatomic,strong)UIColor* textShadowColor;``` 
+
+Set the shadow color. 
+-  ```objective-c @property(nonatomic,assign)CGSize textShadowOffset;``` 
+
+Set the offset of the shadow.
+-  ```objective-c @property(nonatomic,assign)NSInteger textShadowBlur;``` 
+
+Set the blur of the shadow.
+
+- ```objective-c+(CGFloat)suggestedHeight:(NSAttributedString*)attributedText width:(int)width;``` 
+
+returns the suggested height for the label based on the text and the width. This is very useful in determinting a TableViewCell/ScrollView height before drawing the label and adding it into the view hierarchy 
+
+## DCLabel delegate Methods ##
+
+-  ```objective-c - (void)didSelectLink:(NSString*)link;```
+-  ```objective-c - (void)didLongPressLink:(NSString*)link frame:(CGRect)frame;```
+-  ```objective-c - (void)didSelectImage:(NSString*)imageURL;```
+-  ```objective-c - (void)didLongPressImage:(NSString*)imageURL;```
+
+//return your imageView that loads the imgURL
+-(UIView*)imageWillLoad:(NSString*)imgURL attributes:(NSDictionary*)attributes;
 
 # Requirements #
 

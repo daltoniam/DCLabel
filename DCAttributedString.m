@@ -53,10 +53,10 @@
 //set text color with a range
 -(void)setTextColor:(UIColor*)color range:(NSRange)range
 {
-    [self removeAttribute:NSForegroundColorAttributeName range:range];
-    [self addAttribute:NSForegroundColorAttributeName value:color range:range];
-	//[self removeAttribute:(NSString*)kCTForegroundColorAttributeName range:range]; // remove then add for apple leak.
-	//[self addAttribute:(NSString*)kCTForegroundColorAttributeName value:(id)color.CGColor range:range];
+    //[self removeAttribute:NSForegroundColorAttributeName range:range];
+    //[self addAttribute:NSForegroundColorAttributeName value:color range:range];
+	[self removeAttribute:(NSString*)kCTForegroundColorAttributeName range:range]; // remove then add for apple leak.
+	[self addAttribute:(NSString*)kCTForegroundColorAttributeName value:(id)color.CGColor range:range];
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //set text underlined
@@ -224,7 +224,21 @@
     [self setTextItalic:isItalic range:range];
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
--(void)setUnOrderedList:(int)index
+-(void)setTextSize:(CGFloat)size
+{
+    [self setTextSize:size range:NSMakeRange(0, self.length)];
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+-(void)setTextSize:(CGFloat)size range:(NSRange)range
+{
+    CTFontRef currentFont = (__bridge CTFontRef)[self attribute:(NSString*)kCTFontAttributeName atIndex:range.location effectiveRange:NULL];
+    NSString *fontName = (__bridge NSString *)CTFontCopyName(currentFont, kCTFontPostScriptNameKey);
+    UIFont *font = [UIFont fontWithName:fontName size:size];
+    [self removeAttribute:(NSString*)kCTFontAttributeName range:range]; // remove then add for apple leak.
+    [self addAttribute:(NSString*)kCTFontAttributeName value:font range:range];
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+-(void)setUnOrderedList:(NSInteger)index
 {
     CTFontRef currentFont = (__bridge CTFontRef)[self attribute:(NSString*)kCTFontAttributeName atIndex:index effectiveRange:NULL];
     CGFloat fontSize = CTFontGetSize(currentFont);
@@ -233,16 +247,16 @@
     [self addAttribute:DC_UNORDERED_LIST value:[NSNumber numberWithBool:YES] range:range];
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
--(void)setOrderedList:(int)index number:(int)number
+-(void)setOrderedList:(NSInteger)index number:(NSInteger)number
 {
     CTFontRef currentFont = (__bridge CTFontRef)[self attribute:(NSString*)kCTFontAttributeName atIndex:index effectiveRange:NULL];
     CGFloat fontSize = CTFontGetSize(currentFont);
     NSRange range = NSMakeRange(index, 1);
     [self addRunDelegate:range height:fontSize width:fontSize];
-    [self addAttribute:DC_ORDERED_LIST value:[NSNumber numberWithInt:number] range:range];
+    [self addAttribute:DC_ORDERED_LIST value:[NSNumber numberWithInteger:number] range:range];
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
--(void)addImage:(NSString*)link height:(float)height width:(float)width index:(int)index attributes:(NSDictionary*)attrs
+-(void)addImage:(NSString*)link height:(float)height width:(float)width index:(NSInteger)index attributes:(NSDictionary*)attrs
 {
     NSMutableAttributedString* string = [[NSMutableAttributedString alloc] initWithString:@" "];
     NSRange range = NSMakeRange(0, 1); 

@@ -30,8 +30,8 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 @interface DCStyleRange : NSObject
 
-@property(nonatomic,assign)int start;
-@property(nonatomic,assign)int end;
+@property(nonatomic,assign)NSInteger start;
+@property(nonatomic,assign)NSInteger end;
 @property(nonatomic,assign)NSArray* attribs;
 @property(nonatomic,assign)NSString* closeTag;
 @property(nonatomic,strong)NSString* openTag;
@@ -55,6 +55,7 @@
         patterns = [[NSMutableArray alloc] init];
         self.embedHeight = 200;
         self.embedWidth = 200;
+        self.font = [UIFont systemFontOfSize:17];
     }
     return self;
 }
@@ -94,7 +95,7 @@
 -(void)addPattern:(NSString*)openTag close:(NSString*)closeTag attributes:(NSArray*)attribs
          keepOpen:(BOOL)open keepClose:(BOOL)close isWord:(BOOL)isWord
 {
-    [self purgePatterns:openTag close:closeTag];
+    [self removePattern:openTag close:closeTag];
     DCParsePattern* pattern = [DCParsePattern patternWithTag:openTag close:closeTag attribs:attribs];
     pattern.keepOpen = open;
     pattern.keepClose = close;
@@ -105,7 +106,7 @@
 -(void)addPattern:(NSString*)openTag close:(NSString*)closeTag
          keepOpen:(BOOL)open keepClose:(BOOL)close isWord:(BOOL)isWord block:(DCPatternBlock)callback
 {
-    [self purgePatterns:openTag close:closeTag];
+    [self removePattern:openTag close:closeTag];
     DCParsePattern* pattern = [DCParsePattern patternWithTag:openTag close:closeTag callback:callback];
     pattern.keepOpen = open;
     pattern.keepClose = close;
@@ -113,13 +114,42 @@
     [patterns addObject:pattern];
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+-(void)removePattern:(NSString*)openTag close:(NSString*)closeTag
+{
+    for(DCParsePattern* pattern in patterns)
+    {
+        if([pattern.closeTag isEqualToString:closeTag] && [pattern.openTag isEqualToString:openTag])
+        {
+            [patterns removeObject:pattern];
+            return;
+        }
+    }
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+-(void)promotePattern:(NSString*)openTag close:(NSString*)closeTag
+{
+    for(DCParsePattern* pattern in patterns)
+    {
+        if([pattern.closeTag isEqualToString:closeTag] && [pattern.openTag isEqualToString:openTag])
+        {
+            [patterns removeObject:pattern];
+            [patterns insertObject:pattern atIndex:0];
+            return;
+        }
+    }
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 -(NSAttributedString*)parse:(NSString*)string
 {
+    if(!string)
+        return nil;
     NSString* endString = [NSString stringWithString:string];
     int offset = 0;
     NSMutableArray* currentRanges = [NSMutableArray array];
     NSMutableArray* collectRanges = [NSMutableArray array];
     BOOL found = NO;
+    //unichar turtleFace = [string characterAtIndex:string.length-1];
+    //NSLog(@"currentChar: %c",turtleFace);
     for(int i = 0; i < string.length; i++)
     {
         for(DCStyleRange* range in currentRanges)
@@ -178,7 +208,7 @@
                     if(!range.keepClose)
                     {
                         //NSLog(@"i %d end: %d length: %d",i,(i-offset)+range.closeTag.length,endString.length);
-                        int len = (i-offset)+range.closeTag.length;
+                        NSInteger len = (i-offset)+range.closeTag.length;
                         if(len <= endString.length)
                         {
                             endString = [endString stringByReplacingCharactersInRange:NSMakeRange(i-offset, range.closeTag.length) withString:@""];
@@ -195,7 +225,7 @@
                         range.end += embedOffset;*/
                     [currentRanges removeObject:range];
                     //update the offset of the tag after this one
-                    if(totalChange > 0)
+                    /*if(totalChange > 0)
                     {
                         int index = [collectRanges indexOfObject:range];
                         for(int i = index; i < collectRanges.count-1; i++)
@@ -205,7 +235,7 @@
                             if(range.start < 0)
                                 range.start = 0;
                         }
-                    }
+                    }*/
                     //clean up any pattern that is no longer needed
                     NSMutableArray* removeArray = nil;
                     for(DCStyleRange* checkRange in currentRanges)
@@ -218,6 +248,11 @@
                         }
                     }
                     [currentRanges removeObjectsInArray:removeArray];
+                    for(DCStyleRange* checkRange in collectRanges)
+                    {
+                        if(checkRange.start > range.start && checkRange.end < range.end && checkRange != range)
+                            checkRange.start -= range.openTag.length;
+                    }
                     found = YES;
                     break;
                 }
@@ -288,7 +323,7 @@
     int embedOffset = 0; //when a view is embed, we the end ranges of links get messed up
     int imgOffset = 0;
     NSMutableAttributedString* attribString = [[NSMutableAttributedString alloc] initWithString:endString attributes:nil];
-    [attribString setFont:[UIFont systemFontOfSize:15]];
+    [attribString setFont:self.font];
     for(DCStyleRange* range in collectRanges)
     {
         if(range.start != NSNotFound && range.start > -1 && range.start+range.end <= endString.length && range.end != NSNotFound && range.end != 0)
@@ -321,9 +356,18 @@
                         else if([style isEqualToString:DC_STRIKE_THROUGH_TEXT])
                             [attribString setTextStrikeOut:YES range:rangeText];
                         else if([style isEqualToString:DC_UNORDERED_LIST])
-                            [attribString setUnOrderedList:rangeText.location];
+                            [attribString setUnOrderedList:rangeText.location-1];
                         else if([style isEqualToString:DC_ORDERED_LIST])
-                            [attribString setOrderedList:rangeText.location number:++numIndex];
+                            [attribString setOrderedList:rangeText.location-1 number:++numIndex];
+                        else if([style isEqualToString:DC_HTML_UNKNOWN_LIST])
+                        {
+                            NSDictionary* attributes = [attribString attributesAtIndex:rangeText.location effectiveRange:NULL];
+                            if(attributes[DC_HTML_ORDER_LIST])
+                                [attribString setOrderedList:rangeText.location-1 number:++numIndex];
+                            else
+                                [attribString setUnOrderedList:rangeText.location-1];
+                        }
+                        
                     }
                     else if([object isKindOfClass:[UIFont class]])
                     {
@@ -362,6 +406,8 @@
                             }
                             else if([key isEqualToString:DC_LINK_TEXT])
                                 [attribString setTextIsHyperLink:value range:rangeLoc];
+                            else if([key isEqualToString:DC_TEXT_SIZE])
+                                [attribString setTextSize:[value floatValue] range:rangeLoc];
                             else
                                 [attribString addAttribute:key value:value range:rangeLoc];
                         }
@@ -390,8 +436,8 @@
         {
             unichar end = [tagName characterAtIndex:range.location+1];
             NSString* last = [tagName substringFromIndex:range.location+1];
-            int start = index+range.location;
-            for(int i = start; i < string.length; i++)
+            NSInteger start = index+range.location;
+            for(NSInteger i = start; i < string.length; i++)
             {
                 if(end == [string characterAtIndex:i])
                 {
@@ -408,18 +454,6 @@
         }
     }
     return NO;
-}
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
--(void)purgePatterns:(NSString*)openTag close:(NSString*)closeTag
-{
-    for(DCParsePattern* pattern in patterns)
-    {
-        if([pattern.closeTag isEqualToString:closeTag] && [pattern.openTag isEqualToString:openTag])
-        {
-            [patterns removeObject:pattern];
-            return;
-        }
-    }
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 -(void)updateRange:(DCStyleRange*)range pattern:(DCParsePattern*)pattern
@@ -439,21 +473,108 @@
 +(DCParseEngine*)engineWithHTMLParser
 {
     DCParseEngine* engine = [[DCParseEngine alloc] init];
-    [engine addPattern:@"<b>" close:@"</b>" attributes:[NSArray arrayWithObject:DC_BOLD_TEXT]];
-    [engine addPattern:@"<strong>" close:@"</strong>" attributes:[NSArray arrayWithObject:DC_BOLD_TEXT]];
-    [engine addPattern:@"<i>" close:@"</i>" attributes:[NSArray arrayWithObject:DC_ITALIC_TEXT]];
-    [engine addPattern:@"<em>" close:@"</em>" attributes:[NSArray arrayWithObject:DC_ITALIC_TEXT]];
+    [engine addPattern:@"<b>" close:@"</b>" attributes:@[DC_BOLD_TEXT]];
+    [engine addPattern:@"<strong>" close:@"</strong>" attributes:@[DC_BOLD_TEXT]];
+    [engine addPattern:@"<i>" close:@"</i>" attributes:@[DC_ITALIC_TEXT]];
+    [engine addPattern:@"<em>" close:@"</em>" attributes:@[DC_ITALIC_TEXT]];
     [engine addPattern:@"<a?>" close:@"</a>" block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
-        NSRange range = [openTag rangeOfString:@"href="];
-        int start = range.location + range.length + 1;
-        range = [openTag rangeOfString:@" " options:0 range:NSMakeRange(start, openTag.length-start)];
-        int end = 0;
-        if(range.location != NSNotFound)
-            end = range.location-2;
-        else
-            end = openTag.length-2;
-        NSString* link = [openTag substringWithRange:NSMakeRange(start, end-start)];
-        return [NSArray arrayWithObjects:[UIColor colorWithRed:0 green:0 blue:238.0f/255.0f alpha:1],[NSDictionary dictionaryWithObject:link forKey:DC_LINK_TEXT],nil];
+        NSMutableDictionary* dict = [DCParseEngine processAttributes:openTag];
+        NSString* link = dict[@"href"];
+        if(link)
+            return @[[UIColor colorWithRed:0 green:0 blue:238.0f/255.0f alpha:1],@{DC_LINK_TEXT: link}];
+        return nil;
+    }];
+    [engine addPattern:@"<img?>" close:@"</img>" block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
+        NSMutableDictionary* dict = [DCParseEngine processAttributes:openTag];
+        if(dict[@"src"])
+            [dict setObject:dict[@"src"] forKey:DC_IMAGE_LINK];
+        if(dict)
+            return @[dict];
+        return nil;
+    }];
+    [engine addPattern:@"<img?/>" close:@" " block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
+        NSMutableDictionary* dict = [DCParseEngine processAttributes:openTag];
+        if(dict[@"src"])
+            [dict setObject:dict[@"src"] forKey:DC_IMAGE_LINK];
+        if(dict)
+            return @[dict];
+        return nil;
+    }];
+    [engine addPattern:@"<p>" close:@"</p>" attributes:nil];
+    [engine addPattern:@"<ol>" close:@"</ol>" attributes:@[@{DC_HTML_ORDER_LIST: [NSNumber numberWithBool:YES]}]];
+    [engine addPattern:@"<ul>" close:@"</ul>" attributes:@[@{DC_HTML_UNORDER_LIST: [NSNumber numberWithBool:YES]}]];
+    [engine addPattern:@"<li>" close:@"</li>" block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
+        return @[DC_HTML_UNKNOWN_LIST];
+    }];
+    [engine addPattern:@"<span?>" close:@"</span>" block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
+        
+        NSMutableArray* collect = [NSMutableArray array];
+        NSRange find = [openTag rangeOfString:@"font-size:"];
+        if(find.location != NSNotFound)
+        {
+            NSInteger pos = find.location+find.length;
+            NSRange end = [openTag rangeOfString:@";" options:0 range:NSMakeRange(pos, [openTag length]-pos)];
+            if(end.location == NSNotFound)
+                end = [openTag rangeOfString:@"'" options:0 range:NSMakeRange(pos, [openTag length]-pos)];
+            if(end.location == NSNotFound)
+                end = [openTag rangeOfString:@"\"" options:0 range:NSMakeRange(pos, [openTag length]-pos)];
+            if(end.location == NSNotFound)
+                end = NSMakeRange([openTag length],0);
+            CGFloat size = [[openTag substringWithRange:end] floatValue];
+            if(size > 0)
+                [collect addObject:@{DC_TEXT_SIZE: [NSNumber numberWithFloat:size]}];
+        }
+        find = [openTag rangeOfString:@"text-decoration:"];
+        if(find.location != NSNotFound)
+        {
+            NSInteger pos = find.location+find.length;
+            if(pos != NSNotFound && openTag.length > pos)
+            {
+                NSString* decorations = [openTag substringWithRange:NSMakeRange(pos, [openTag length]-pos)];
+                if([decorations rangeOfString:@"line-through"].location != NSNotFound)
+                    [collect addObject:DC_UNDERLINE_TEXT];
+                if([decorations rangeOfString:@"underline"].location != NSNotFound)
+                    [collect addObject:DC_STRIKE_THROUGH_TEXT];
+            }
+        }
+        find = [openTag rangeOfString:@"color:"];
+        if(find.location != NSNotFound)
+        {
+            NSInteger pos = find.location+find.length;
+            NSRange end = [openTag rangeOfString:@";" options:0 range:NSMakeRange(pos, [openTag length]-pos)];
+            if(end.location == NSNotFound)
+                end = [openTag rangeOfString:@" " options:0 range:NSMakeRange(pos, [openTag length]-pos)];
+            if(end.location == NSNotFound)
+                end = [openTag rangeOfString:@"\n" options:0 range:NSMakeRange(pos, [openTag length]-pos)];
+            if(end.location != NSNotFound)
+            {
+                NSString* cssstring = [openTag substringWithRange:NSMakeRange(pos, end.location-pos)];
+                cssstring = [DCParseEngine trimWhiteSpace:cssstring];
+                if([cssstring hasPrefix:@"#"] && cssstring.length > 3)
+                    [collect addObject:[DCParseEngine colorFromHexCode:cssstring]];
+                else if([cssstring hasPrefix:@"rgb("])
+                {
+                    NSRange rRange = [cssstring rangeOfString:@"("];
+                    NSRange eRange = [cssstring rangeOfString:@")"];
+                    rRange.location += 1;
+                    if(rRange.location != NSNotFound && eRange.location != NSNotFound)
+                    {
+                        NSString* value = [cssstring substringWithRange:NSMakeRange(rRange.location, eRange.location-rRange.location)];
+                        NSArray* vals = [value componentsSeparatedByString:@","];
+                        if(vals.count == 3)
+                        {
+                            UIColor* color = [UIColor colorWithRed:[[DCParseEngine trimWhiteSpace:vals[0]] floatValue]/255.0f
+                                                             green:[[DCParseEngine trimWhiteSpace:vals[1]] floatValue]/255.0f
+                                                              blue:[[DCParseEngine trimWhiteSpace:vals[2]] floatValue]/255.0f alpha:1];
+                            [collect addObject:color];
+                        }
+                    }
+                }
+            }
+        }
+
+        
+        return collect;
     }];
     return engine;
 }
@@ -462,11 +583,9 @@
 +(DCParseEngine*)engineWithMDParser
 {
     DCParseEngine* engine = [[DCParseEngine alloc] init];
-    [engine addPattern:@"***" close:@"***" attributes:@[DC_ITALIC_TEXT,DC_BOLD_TEXT]];
     [engine addPattern:@"**" close:@"**" attributes:@[DC_BOLD_TEXT]];
-    [engine addPattern:@"*" close:@"*" attributes:@[DC_ITALIC_TEXT]];
-    [engine addPattern:@"___" close:@"___" attributes:@[DC_ITALIC_TEXT,DC_BOLD_TEXT]];
     [engine addPattern:@"__" close:@"__" attributes:@[DC_BOLD_TEXT]];
+    [engine addPattern:@"*" close:@"*" attributes:@[DC_ITALIC_TEXT]];
     [engine addPattern:@"_" close:@"_" attributes:@[DC_ITALIC_TEXT]];
     [engine addPattern:@"![" close:@"](?)" block:^NSArray*(NSString* openTag,NSString* closeTag,NSString* text){
         NSString* link = [closeTag substringWithRange:NSMakeRange(2, closeTag.length-3)];
@@ -499,6 +618,93 @@
             tag = [tag substringFromIndex:1];
     }
     return engine;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
++(NSMutableDictionary*)processAttributes:(NSString*)string
+{
+    NSArray* attrArray = [string componentsSeparatedByString:@" "];
+    if([attrArray lastObject])
+    {
+        NSString* val = [attrArray lastObject];
+        if([val hasSuffix:@">"])
+        {
+            val = [val substringToIndex:val.length-1];
+            NSMutableArray* array = [NSMutableArray arrayWithArray:attrArray];
+            [array replaceObjectAtIndex:array.count-1 withObject:val];
+            attrArray = array;
+        }
+    }
+    NSMutableArray* collect = [NSMutableArray arrayWithCapacity:attrArray.count];
+    for(int i = 1; i < attrArray.count; i++)
+    {
+        NSString* string = [attrArray objectAtIndex:i];
+        if(([string rangeOfString:@"="].location == NSNotFound || [string isEqualToString:@"="]) && collect.count > 0)
+        {
+            NSString* last = [collect lastObject];
+            if([last characterAtIndex:last.length-1] == '\'' || [last characterAtIndex:last.length-1] == '\"')
+                [collect addObject:string];
+            else
+            {
+                last = [last stringByAppendingFormat:@" %@",string];
+                [collect removeLastObject];
+                [collect addObject:last];
+            }
+        }
+        else
+            [collect addObject:string];
+    }
+    if(collect.count > 0)
+    {
+        NSMutableDictionary* dict = [NSMutableDictionary dictionaryWithCapacity:attrArray.count];
+        for(NSString* attr in collect)
+        {
+            NSRange split = [attr rangeOfString:@"="];
+            if(split.location != NSNotFound)
+            {
+                NSString* value = [attr substringWithRange:NSMakeRange(split.location+1, attr.length-(split.location+1))];
+                value = [value stringByReplacingOccurrencesOfString:@"\"" withString:@""];
+                value = [value stringByReplacingOccurrencesOfString:@"'" withString:@""];
+                NSString* key = [attr substringWithRange:NSMakeRange(0, split.location)];
+                if(key.length > 0)
+                {
+                    key = [key stringByReplacingOccurrencesOfString:@"\"" withString:@""];
+                    key = [key stringByReplacingOccurrencesOfString:@"'" withString:@""];
+                    [dict setObject:value forKey:key];
+                }
+            }
+        }
+        return dict;
+    }
+    return nil;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
++(NSString*)trimWhiteSpace:(NSString*)string
+{
+    return [string stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
++(UIColor*)colorFromHexCode:(NSString *)hexString
+{
+    NSString *cleanString = [hexString stringByReplacingOccurrencesOfString:@"#" withString:@""];
+    if([cleanString length] == 3)
+    {
+        cleanString = [NSString stringWithFormat:@"%@%@%@%@%@%@",
+                       [cleanString substringWithRange:NSMakeRange(0, 1)],[cleanString substringWithRange:NSMakeRange(0, 1)],
+                       [cleanString substringWithRange:NSMakeRange(1, 1)],[cleanString substringWithRange:NSMakeRange(1, 1)],
+                       [cleanString substringWithRange:NSMakeRange(2, 1)],[cleanString substringWithRange:NSMakeRange(2, 1)]];
+    }
+    if([cleanString length] == 6)
+        cleanString = [cleanString stringByAppendingString:@"ff"];
+    
+    unsigned int baseValue;
+    [[NSScanner scannerWithString:cleanString] scanHexInt:&baseValue];
+    
+    float red = ((baseValue >> 24) & 0xFF)/255.0f;
+    float green = ((baseValue >> 16) & 0xFF)/255.0f;
+    float blue = ((baseValue >> 8) & 0xFF)/255.0f;
+    float alpha = ((baseValue >> 0) & 0xFF)/255.0f;
+    
+    return [UIColor colorWithRed:red green:green blue:blue alpha:alpha];
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

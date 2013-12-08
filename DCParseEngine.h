@@ -8,6 +8,10 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #import <Foundation/Foundation.h>
+static NSString* const DC_HTML_ORDER_LIST = @"DCHTMLOrderedList";
+static NSString* const DC_HTML_UNORDER_LIST = @"DCHTMLOrderedList";
+static NSString* const DC_HTML_UNKNOWN_LIST = @"DCHTMLUnknown";
+static NSString* const DC_TEXT_SIZE = @"DCTextSize";
 
 typedef NSArray* (^DCPatternBlock)(NSString* openTag,NSString* closeTag,NSString* text);
 
@@ -43,6 +47,12 @@ typedef NSArray* (^DCPatternBlock)(NSString* openTag,NSString* closeTag,NSString
 -(void)addPattern:(NSString*)openTag close:(NSString*)closeTag
          keepOpen:(BOOL)open keepClose:(BOOL)close isWord:(BOOL)isWord block:(DCPatternBlock)callback;
 
+//remove a pattern from the parser. Must be an exact match.
+-(void)removePattern:(NSString*)openTag close:(NSString*)closeTag;
+
+//'promote' a pattern to be first in the processing index.
+-(void)promotePattern:(NSString*)openTag close:(NSString*)closeTag;
+
 //start the parsing of string.
 -(NSAttributedString*)parse:(NSString*)string;
 
@@ -55,5 +65,11 @@ typedef NSArray* (^DCPatternBlock)(NSString* openTag,NSString* closeTag,NSString
 
 //the width that image and videos will embed
 @property(nonatomic,assign)float embedWidth;
+
+//the default font you want. Default is system size 17
+@property(nonatomic,assign)UIFont* font;
+
+//used for creating changing html attributes into dictionary object (for img tags)
++(NSMutableDictionary*)processAttributes:(NSString*)string;
 
 @end

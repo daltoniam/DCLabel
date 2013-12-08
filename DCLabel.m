@@ -14,15 +14,34 @@
 
 #define LONG_PRESS_THRESHOLD 0.75
 
-@synthesize delegate,textShadowBlur,textShadowColor,textShadowOffset;
+//when we drop ios 5 support we will need to change
+//kCTForegroundColorAttributeName for this: NSForegroundColorAttributeName
+
+@synthesize delegate,textShadowBlur,textShadowColor,textShadowOffset,attributedText;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 - (id)initWithFrame:(CGRect)frame
 {
     self = [super initWithFrame:frame];
-    if (self) {
-        viewItems = [NSMutableArray array];
+    if (self)
+    {
+        [self sharedInit];
     }
     return self;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+- (id)initWithCoder:(NSCoder *)aDecoder
+{
+    self = [super initWithCoder:aDecoder];
+    if (self)
+    {
+        [self sharedInit];
+    }
+    return self;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+- (void)sharedInit
+{
+    viewItems = [NSMutableArray array];
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 -(void)drawRect:(CGRect)rect
@@ -79,7 +98,7 @@
             }
             CTFrameDraw(textFrame, ctx);
             CFArrayRef leftLines = CTFrameGetLines(textFrame); //textFrame
-            int lineCount = [(__bridge NSArray *)leftLines count];
+            NSInteger lineCount = [(__bridge NSArray *)leftLines count];
             CGPoint *origins = malloc(sizeof(CGPoint)*lineCount);
             CTFrameGetLineOrigins(textFrame,CFRangeMake(0, 0), origins);
             NSInteger lineIndex = 0;
@@ -103,11 +122,11 @@
                     if([list boolValue])
                     {
                         int pad = floorf(width/1.5);
-                        UIColor* color = [attributes objectForKey:NSForegroundColorAttributeName];
+                        CGColorRef color = (__bridge CGColorRef)[attributes objectForKey:(id)kCTForegroundColorAttributeName];
                         if(!color)
-                            color = [UIColor blackColor];
+                            color = [UIColor blackColor].CGColor;
                         CGContextSaveGState(ctx);
-                        CGContextSetFillColorWithColor(ctx,color.CGColor);
+                        CGContextSetFillColorWithColor(ctx,color); //CGColor
                         CGContextFillEllipseInRect(ctx, CGRectMake(xOffset+(pad/4), origins[lineIndex].y+1.5, width-pad, height-pad));
                         CGContextRestoreGState(ctx);
                     }
@@ -118,7 +137,7 @@
                         CGFloat fontSize = CTFontGetSize(font);
                         NSString *fontName = (__bridge NSString *)CTFontCopyName(font, kCTFontPostScriptNameKey);
                         //int pad = floorf(width/1.7);
-                        UIColor* color = [attributes objectForKey:NSForegroundColorAttributeName];
+                        UIColor* color = [attributes objectForKey:(id)kCTForegroundColorAttributeName];
                         if(!color)
                             color = [UIColor blackColor];
                         CGContextSaveGState(ctx);
@@ -318,13 +337,17 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 -(void)setAttributedText:(NSAttributedString *)text
 {
+    if (attributedText == text)
+        return;
     if(textFrame)
         CFRelease(textFrame);
     textFrame = NULL;
     for(ViewItem* item in viewItems)
         [item.subView removeFromSuperview];
     [viewItems removeAllObjects];
-    [super setAttributedText:text];
+    attributedText = [text copy];
+    [self setNeedsDisplay];
+    //[super setAttributedText:text];
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 -(void)setText:(NSString *)text
