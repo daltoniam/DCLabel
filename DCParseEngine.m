@@ -329,6 +329,8 @@
         if(range.start != NSNotFound && range.start > -1 && range.start+range.end <= endString.length && range.end != NSNotFound && range.end != 0)
         {
             range.start -= imgOffset;
+            if(range.start < 0)
+                continue;
             NSRange rangeLoc = NSMakeRange(range.start, range.end);
             NSArray* array = range.attribs;
             if(!array && range.block)
