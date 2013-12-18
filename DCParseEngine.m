@@ -183,7 +183,18 @@
                     else if(i < string.length-1)
                     {
                         unichar currentChar = [string characterAtIndex:i+1];
-                        if(isspace(currentChar) || currentChar == '\n')
+                        if([range.closeTag isEqualToString:@" "])
+                            currentChar = [string characterAtIndex:i];
+                        BOOL start = NO;
+                        if(range.start == 0)
+                            start = YES;
+                        else if(range.start > 0)
+                        {
+                            unichar firstChar = [string characterAtIndex:range.start-1];
+                            if((isspace(firstChar) || firstChar == '\n'))
+                                start = YES;
+                        }
+                        if((isspace(currentChar) || currentChar == '\n') && start)
                             isTag = YES;
                     }
     
@@ -258,7 +269,7 @@
                 }
             }
         }
-        if(!found)
+        if(!found && i < string.length)
         {
             int ind = 0;
             for(DCParsePattern* pattern in patterns)
