@@ -150,7 +150,7 @@
     BOOL found = NO;
     //unichar turtleFace = [string characterAtIndex:string.length-1];
     //NSLog(@"currentChar: %c",turtleFace);
-    for(int i = 0; i < string.length; i++)
+    for(int i = 0; i < string.length-1; i++)
     {
         for(DCStyleRange* range in currentRanges)
         {
@@ -160,13 +160,14 @@
             BOOL match = NO;
             if(checkChar == currentChar)
                 match = YES;
-            else if(isspace(checkChar) && (isspace(currentChar) || currentChar == '\n' || i == string.length-1) && range.closeTag.length == 1 &&
-                    ![range.closeTag isEqualToString:@"\n"])
+            else if( (isspace(checkChar) || i == string.length-1 ) &&
+                    ((range.isWord && ispunct(currentChar)) || isspace(currentChar) || currentChar == '\n' || i == string.length-2) &&
+                    range.closeTag.length == 1 && ![range.closeTag isEqualToString:@"\n"])
             {
                 isTag = YES;
                 match = YES;
-                if(i == string.length-1)
-                    i++;
+                if(i == string.length-2)
+                    i+= 2;
             }
             if(match)
             {
@@ -178,9 +179,9 @@
                 if(range.isWord)
                 {
                     isTag = NO;
-                    if(i == string.length-1)
+                    if(i >= string.length-2)
                         isTag = YES;
-                    else if(i < string.length-1)
+                    else if(i < string.length-2)
                     {
                         unichar currentChar = [string characterAtIndex:i+1];
                         if([range.closeTag isEqualToString:@" "])
@@ -194,7 +195,7 @@
                             if((isspace(firstChar) || firstChar == '\n'))
                                 start = YES;
                         }
-                        if((isspace(currentChar) || currentChar == '\n') && start)
+                        if((isspace(currentChar) || currentChar == '\n' || ispunct(currentChar)) && start)
                             isTag = YES;
                     }
     
