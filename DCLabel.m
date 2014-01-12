@@ -253,11 +253,20 @@
 	UITouch* touch = [touches anyObject];
 	CGPoint pt = [touch locationInView:self];
     CFIndex idx = [self characterIndexAtPoint:pt];
-    if(idx != NSNotFound && idx < [self.attributedText length])
+    if(idx != NSNotFound && idx <= [self.attributedText length])
     {
+        if(idx == [self.attributedText length])
+            idx -= 1;
         NSDictionary* attribs = [self.attributedText attributesAtIndex:idx effectiveRange:NULL];
         NSString* hyperlink = [attribs objectForKey:DC_LINK_TEXT];
         NSString* imageURL = [attribs objectForKey:DC_IMAGE_LINK];
+        if(!hyperlink && !imageURL && idx > -1)
+        {
+            idx -= 1;
+            attribs = [self.attributedText attributesAtIndex:idx effectiveRange:NULL];
+            hyperlink = [attribs objectForKey:DC_LINK_TEXT];
+            imageURL = [attribs objectForKey:DC_IMAGE_LINK];
+        }
         if([self.delegate respondsToSelector:@selector(didSelectLink:)] && hyperlink)
         {
             [self.delegate didSelectLink:hyperlink];

@@ -8,11 +8,11 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #import <Foundation/Foundation.h>
+#import "DCAttributedString.h"
 static NSString* const DC_HTML_ORDER_LIST = @"DCHTMLOrderedList";
 static NSString* const DC_HTML_UNORDER_LIST = @"DCHTMLOrderedList";
 static NSString* const DC_HTML_UNKNOWN_LIST = @"DCHTMLUnknown";
 static NSString* const DC_TEXT_SIZE = @"DCTextSize";
-
 typedef NSArray* (^DCPatternBlock)(NSString* openTag,NSString* closeTag,NSString* text);
 
 
